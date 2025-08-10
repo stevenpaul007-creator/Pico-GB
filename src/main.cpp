@@ -19,10 +19,7 @@
 #define ENABLE_SDCARD 0 // 1
 #define PEANUT_GB_HIGH_LCD_ACCURACY 1
 #define PEANUT_GB_USE_BIOS 0
-
-/* Use DMA for all drawing to LCD. Benefits aren't fully realised at the moment
- * due to busy loops waiting for DMA completion. */
-#define USE_DMA 0
+#include "peanut_gb.h"
 
 /**
  * Reducing VSYNC calculation to lower multiple.
@@ -46,7 +43,7 @@
 /* Project headers */
 #include "hedley.h"
 #include "minigb_apu.h"
-#include "peanut_gb.h"
+
 // #include "sdcard.h"
 #include "core.h"
 #include "game_bin.h"
