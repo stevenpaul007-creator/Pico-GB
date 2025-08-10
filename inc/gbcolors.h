@@ -34,6 +34,11 @@
 
 typedef uint16_t palette_t[3][4];
 
+void manual_assign_palette(palette_t palette, uint8_t selection);
+void auto_assign_palette(uint16_t palette[3][4], uint8_t game_checksum, const char *game_title);
+
+#ifndef GBCOLOR_HEADER_ONLY
+
 /*
  * Get an RGB565 colour palette by entry ID & shuffling flags
  * 
@@ -46,7 +51,7 @@ typedef uint16_t palette_t[3][4];
  */
 void get_colour_palette(palette_t selected_palette,uint8_t table_entry,uint8_t shuffling_flags)
 {
-	printf("I get_colour_palette(table_entry=0x%02X,shuffling_flags=0x%02X)\n",
+	Serial.printf("I get_colour_palette(table_entry=0x%02X,shuffling_flags=0x%02X)\n",
 		table_entry,
 		shuffling_flags);
 	if(table_entry==0x00 && shuffling_flags==0x01)
@@ -571,7 +576,7 @@ void get_colour_palette(palette_t selected_palette,uint8_t table_entry,uint8_t s
 		return;
 	}
 	/* default palette */
-	printf("E get_colour_palette: No palette found for table_entry=0x%02X shuffling_flags=0x%02X\n",
+	Serial.printf("E get_colour_palette: No palette found for table_entry=0x%02X shuffling_flags=0x%02X\n",
 		table_entry,
 		shuffling_flags);
 	/* Game Boy DMG palette (4 shades of green) */
@@ -600,7 +605,7 @@ void get_colour_palette(palette_t selected_palette,uint8_t table_entry,uint8_t s
 void auto_assign_palette(uint16_t palette[3][4], uint8_t game_checksum, const char *game_title)
 {
 	char disambiguation_character=game_title[3]; /* e.g. 'METROID' -> R */
-	printf("I auto_assign_palette(0x%02X,%s)\n", game_checksum,game_title);
+	Serial.printf("I auto_assign_palette(0x%02X,%s)\n", game_checksum,game_title);
 	switch(game_checksum)
 	{
 		case 0x00:
@@ -1239,7 +1244,7 @@ void auto_assign_palette(uint16_t palette[3][4], uint8_t game_checksum, const ch
 		}
 		default:
 		{
-			printf("E auto_assign_palette: No palette found for checksum 0x%02X.\n", game_checksum);
+			Serial.printf("E auto_assign_palette: No palette found for checksum 0x%02X.\n", game_checksum);
 			/* Original Game Boy DMG color palette (monochrome 4-shades of green!) */
  			get_colour_palette(palette,0xFF,0xFF);
 			break;
@@ -1352,3 +1357,5 @@ void manual_assign_palette(palette_t palette, uint8_t selection)
 		}
 	}
 }
+
+#endif
