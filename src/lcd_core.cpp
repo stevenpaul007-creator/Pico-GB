@@ -16,16 +16,17 @@ static uint8_t pixels_buffer[LCD_WIDTH];
 
 palette_t palette; // Colour palette
 
+volatile ScalingMode scalingMode = ScalingMode::NORMAL; 
+
 static int lcd_line_busy = 0;
 
-#define IS_LINE_REPEATED(line) ((line % 2) || (line % 6 == 0))
-// #define IS_LINE_REPEATED(line) 0
+#define IS_REPEATED(pos) ((pos % 2) || (pos % 6 == 0))
 
 static void calcExtraLineTable() {
   uint8_t offset = 0;
   for (uint8_t line = 0; line < LCD_HEIGHT; ++line) {
     scaledLineOffsetTable[line] = offset;
-    offset += 1 + IS_LINE_REPEATED(line);
+    offset += 1 + IS_REPEATED(line);
   }
 }
 
@@ -54,21 +55,66 @@ void lcd_draw_line(struct gb_s* gb, const uint8_t pixels[LCD_WIDTH],
   multicore_fifo_push_blocking(cmd.full);
 }
 
-void lcd_write_pixels(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
+void lcd_write_pixels_normal(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
+  const uint16_t colOffset = (tft.width() - nmemb) / 2;
+  const uint16_t lineOffset = (tft.height() - LCD_HEIGHT) / 2;
+  tft.setAddrWindow(colOffset, lineOffset + line, nmemb, 1);
+  tft.pushColors((uint16_t*) pixels, nmemb, true);
+}
+
+void lcd_write_pixels_stretched(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
   static uint16_t doubledPixels[320];
   uint16_t pos = 0;
-  for (int i = 0; i < nmemb; ++i) {
-    doubledPixels[pos++] = pixels[i];
-    doubledPixels[pos++] = pixels[i];
+  for (int col = 0; col < nmemb; ++col) {
+    doubledPixels[pos++] = pixels[col];
+    doubledPixels[pos++] = pixels[col];
   }
+  const uint16_t stretchedWidth = pos;
 
-  uint8_t repeatedLines = IS_LINE_REPEATED(line);
-  // tft.setAddrWindow(0, scaledLineOffsetTable[line], nmemb * 2, 1 + repeatedLines);
-  tft.setAddrWindow(0, scaledLineOffsetTable[line], nmemb * 2, 1);
-  tft.pushColors((uint16_t*)doubledPixels, nmemb * 2, true);
+  uint8_t repeatedLines = IS_REPEATED(line);
+  tft.setAddrWindow(0, scaledLineOffsetTable[line], stretchedWidth, 1);
+  tft.pushColors((uint16_t*)doubledPixels, stretchedWidth, true);
   if (repeatedLines) {
-    tft.setAddrWindow(0, scaledLineOffsetTable[line] + 1, nmemb * 2, 1);
-    tft.pushColors((uint16_t*)doubledPixels, nmemb * 2, true);
+    tft.setAddrWindow(0, scaledLineOffsetTable[line] + 1, stretchedWidth, 1);
+    tft.pushColors((uint16_t*)doubledPixels, stretchedWidth, true);
+  }
+}
+
+void lcd_write_pixels_stretched_keep_aspect(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
+  static uint16_t doubledPixels[320];
+  uint16_t pos = 0;
+  for (int col = 0; col < nmemb; ++col) {
+    doubledPixels[pos++] = pixels[col];
+    if (IS_REPEATED(col)) {
+      doubledPixels[pos++] = pixels[col];
+    }
+  }
+  const uint16_t stretchedWidth = pos;
+
+  const uint16_t colOffset = (tft.width() - stretchedWidth) / 2;
+ 
+  uint8_t repeatedLines = IS_REPEATED(line);
+  tft.setAddrWindow(colOffset, scaledLineOffsetTable[line], stretchedWidth, 1);
+  tft.pushColors((uint16_t*)doubledPixels, stretchedWidth, true);
+  if (repeatedLines) {
+    tft.setAddrWindow(colOffset, scaledLineOffsetTable[line] + 1, stretchedWidth, 1);
+    tft.pushColors((uint16_t*)doubledPixels, stretchedWidth, true);
+  }
+}
+
+void lcd_write_pixels(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
+  switch (scalingMode)
+  {
+  case ScalingMode::STRETCH:
+    lcd_write_pixels_stretched(pixels, line, nmemb);
+    break;
+  case ScalingMode::STRETCH_KEEP_ASPECT:
+    lcd_write_pixels_stretched_keep_aspect(pixels, line, nmemb);
+    break;
+  case ScalingMode::NORMAL:
+  default:
+    lcd_write_pixels_normal(pixels, line, nmemb);
+    break;
   }
 }
 
@@ -112,7 +158,7 @@ void core1DispatchLoop() {
     break;
 
   case CORE_CMD_IDLE_SET:
-    lcd_display_control(true, cmd.data);
+    lcd_fill(TFT_BLACK);
     break;
 
   case CORE_CMD_NOP:

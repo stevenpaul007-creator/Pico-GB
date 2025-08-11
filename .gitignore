@@ -2,3 +2,4 @@ build
 uf2
 .pio
 .vscode
+*_bin.h

@@ -29,6 +29,8 @@
 /* RP2040 Headers */
 #include <hardware/vreg.h>
 
+#include <PCF8574.h>
+
 /* Project headers */
 #include "hedley.h"
 #include "minigb_apu.h"
@@ -39,14 +41,25 @@
 #include "i2s.h"
 
 /* GPIO Connections. */
-#define GPIO_UP 16
-#define GPIO_DOWN 16
-#define GPIO_LEFT 16
-#define GPIO_RIGHT 16
-#define GPIO_A 16
-#define GPIO_B 16
-#define GPIO_SELECT 16
-#define GPIO_START 16
+#ifdef USE_PAD_GPIO
+#define PIN_UP		2
+#define PIN_DOWN	3
+#define PIN_LEFT	4
+#define PIN_RIGHT	5
+#define PIN_A		6
+#define PIN_B		7
+#define PIN_SELECT	8
+#define PIN_START	9
+#else
+#define PIN_UP		0
+#define PIN_DOWN	1
+#define PIN_LEFT	2
+#define PIN_RIGHT	3
+#define PIN_A		5
+#define PIN_B		4
+#define PIN_SELECT	6
+#define PIN_START	7
+#endif
 
 #if ENABLE_SOUND
 /**
@@ -71,6 +84,9 @@ static unsigned char rom_bank0[65536];
 
 static uint8_t ram[32768];
 static uint8_t manual_palette_selected = 0;
+
+static PCF8574 pcf8574(0x20, 16, 17);
+
 
 static struct
 {
@@ -130,9 +146,9 @@ void gb_error(struct gb_s* gb, const enum gb_error_e gb_err, const uint16_t addr
 #endif
 }
 
-void stop();
+void reset();
 
-void start() {
+void startEmulator() {
 #if ENABLE_LCD
 #if ENABLE_SDCARD
   /* ROM File selector */
@@ -150,7 +166,7 @@ void start() {
 
   if (ret != GB_INIT_NO_ERROR) {
     Serial.printf("Error: %d\n", ret);
-    stop();
+    reset();
   }
 
   /* Automatically assign a colour palette to the game */
@@ -182,38 +198,15 @@ void start() {
   Serial.print("\n> ");
 }
 
-void stop() {
+void reset() {
   Serial.println("\nEmulation Ended");
   /* stop lcd task running on core 1 */
   multicore_reset_core1();
-  while (true)
-    ;
+  watchdog_reboot(0,0,0);
 }
 
-void setup(void) {
-  /* Overclock. */
-  {
-    const unsigned vco = 1596 * 1000 * 1000; /* 266MHz */
-    const unsigned div1 = 6, div2 = 1;
-
-    vreg_set_voltage(VREG_VOLTAGE_1_15);
-    sleep_ms(2);
-    set_sys_clock_pll(vco, div1, div2);
-    sleep_ms(2);
-  }
-
-  /* Initialise USB serial connection for debugging. */
-  Serial.begin(115200);
-  while (!Serial)
-    ;
-
-#if ENABLE_SDCARD
-  time_init();
-#endif
-  // sleep_ms(5000);
-  Serial.println("INIT: ");
-
-  /* Initialise GPIO pins. */
+#ifdef USE_PAD_GPIO
+void initJoypad() {
   gpio_set_function(GPIO_UP, GPIO_FUNC_SIO);
   gpio_set_function(GPIO_DOWN, GPIO_FUNC_SIO);
   gpio_set_function(GPIO_LEFT, GPIO_FUNC_SIO);
@@ -240,6 +233,49 @@ void setup(void) {
   gpio_pull_up(GPIO_B);
   gpio_pull_up(GPIO_SELECT);
   gpio_pull_up(GPIO_START);
+}
+#else
+void initJoypad() {
+  for (int pin = 0; pin < 8; ++pin) {
+    pcf8574.pinMode(pin, INPUT_PULLUP);
+  }
+
+  pcf8574.setLatency(5);
+  
+  if (pcf8574.begin()){
+		Serial.println("PCF8574 initialized");
+	}else{
+		Serial.println("PCF8574 initialization failed");
+    while (true) ;
+	}
+}
+#endif
+
+void setup(void) {
+  /* Overclock. */
+  {
+    const unsigned vco = 1596 * 1000 * 1000; /* 266MHz */
+    const unsigned div1 = 6, div2 = 1;
+
+    vreg_set_voltage(VREG_VOLTAGE_1_15);
+    sleep_ms(2);
+    set_sys_clock_pll(vco, div1, div2);
+    sleep_ms(2);
+  }
+
+  /* Initialise USB serial connection for debugging. */
+  Serial.begin(115200);
+  //while (!Serial) ;
+  //delay(2000);
+
+#if ENABLE_SDCARD
+  time_init();
+#endif
+  // sleep_ms(5000);
+  Serial.println("INIT: ");
+
+  /* Initialise joypad. */
+  initJoypad();
 
 /* Set SPI clock to use high frequency. */
 #if 0
@@ -264,7 +300,7 @@ void setup(void) {
   i2s_init(&i2s_config);
 #endif
 
-  start();
+  startEmulator();
 }
 
 void nextPalette() {
@@ -277,7 +313,7 @@ void prevPalette() {
   manual_assign_palette(palette, manual_palette_selected);
 }
 
-void handleInput(uint_fast32_t& frames) {
+void handleSerial(uint_fast32_t& frames) {
   static uint64_t start_time = time_us_64();
 
   /* Serial monitor commands */
@@ -287,37 +323,6 @@ void handleInput(uint_fast32_t& frames) {
   }
 
   switch (input) {
-#if 0
-    static bool invert = false;
-    static bool sleep = false;
-    static uint8_t freq = 1;
-    static ili9225_color_mode_e colour = ILI9225_COLOR_MODE_FULL;
-
-    case 'i':
-        invert = !invert;
-        mk_ili9225_display_control(invert, colour);
-        break;
-
-    case 'f':
-        freq++;
-        freq &= 0x0F;
-        mk_ili9225_set_drive_freq(freq);
-        Serial.printf("Freq %u\n", freq);
-        break;
-#endif
-  case 'c': {
-#if 0
-        static ili9225_color_mode_e mode = ILI9225_COLOR_MODE_FULL;
-        union core_cmd cmd;
-
-        mode = !mode;
-        cmd.cmd = CORE_CMD_IDLE_SET;
-        cmd.data = mode;
-        multicore_fifo_push_blocking(cmd.full);
-#endif
-    break;
-  }
-
   case 'i':
     gb.direct.interlace = !gb.direct.interlace;
     break;
@@ -387,7 +392,7 @@ void handleInput(uint_fast32_t& frames) {
   }
 
   case 'q':
-    stop();
+    reset();
 
   case 'p':
     nextPalette();
@@ -407,14 +412,35 @@ void handlePad() {
   prev_joypad_bits.b = gb.direct.joypad_bits.b;
   prev_joypad_bits.select = gb.direct.joypad_bits.select;
   prev_joypad_bits.start = gb.direct.joypad_bits.start;
-  gb.direct.joypad_bits.up = gpio_get(GPIO_UP);
-  gb.direct.joypad_bits.down = gpio_get(GPIO_DOWN);
-  gb.direct.joypad_bits.left = gpio_get(GPIO_LEFT);
-  gb.direct.joypad_bits.right = gpio_get(GPIO_RIGHT);
-  gb.direct.joypad_bits.a = gpio_get(GPIO_A);
-  gb.direct.joypad_bits.b = gpio_get(GPIO_B);
-  gb.direct.joypad_bits.select = gpio_get(GPIO_SELECT);
-  gb.direct.joypad_bits.start = gpio_get(GPIO_START);
+
+#ifdef USE_PAD_GPIO
+  gb.direct.joypad_bits.up = gpio_get(PIN_UP);
+  gb.direct.joypad_bits.down = gpio_get(PIN_DOWN);
+  gb.direct.joypad_bits.left = gpio_get(PIN_LEFT);
+  gb.direct.joypad_bits.right = gpio_get(PIN_RIGHT);
+  gb.direct.joypad_bits.a = gpio_get(PIN_A);
+  gb.direct.joypad_bits.b = gpio_get(PIN_B);
+  gb.direct.joypad_bits.select = gpio_get(PIN_SELECT);
+  gb.direct.joypad_bits.start = gpio_get(PIN_START);
+#else
+  #if 0
+  Serial.printf("pins:\n");
+  for (int i = 0; i < 8; ++i) {
+    int in = pcf8574.digitalRead(i);
+    Serial.printf(" %d", in);
+  }
+  Serial.printf("\n");
+  #endif
+
+  gb.direct.joypad_bits.up = pcf8574.digitalRead(PIN_UP);
+  gb.direct.joypad_bits.down = pcf8574.digitalRead(PIN_DOWN);
+  gb.direct.joypad_bits.left = pcf8574.digitalRead(PIN_LEFT);
+  gb.direct.joypad_bits.right = pcf8574.digitalRead(PIN_RIGHT);
+  gb.direct.joypad_bits.a = pcf8574.digitalRead(PIN_A);
+  gb.direct.joypad_bits.b = pcf8574.digitalRead(PIN_B);
+  gb.direct.joypad_bits.select = pcf8574.digitalRead(PIN_SELECT);
+  gb.direct.joypad_bits.start = pcf8574.digitalRead(PIN_START);
+#endif
 
   /* hotkeys (select + * combo)*/
   if (!gb.direct.joypad_bits.select) {
@@ -441,12 +467,20 @@ void handlePad() {
 #if ENABLE_SDCARD
       write_cart_ram_file(&gb);
 #endif
-      stop();
+      reset();
     }
     if (!gb.direct.joypad_bits.a && prev_joypad_bits.a) {
       /* select + A: enable/disable frame-skip => fast-forward */
       gb.direct.frame_skip = !gb.direct.frame_skip;
       Serial.printf("I gb.direct.frame_skip = %d\n", gb.direct.frame_skip);
+    }
+    if (!gb.direct.joypad_bits.b && prev_joypad_bits.b) {
+      /* select + B: change scaling mode */
+      scalingMode = (ScalingMode)(((int) scalingMode + 1) % ((int) ScalingMode::COUNT));
+      union core_cmd cmd;
+      cmd.cmd = CORE_CMD_IDLE_SET;
+      multicore_fifo_push_blocking(cmd.full);
+      Serial.printf("I Scaling mode: = %d\n", scalingMode);
     }
   }
 }
@@ -470,5 +504,5 @@ void loop() {
 #endif
 
   handlePad();
-  handleInput(frames);
+  handleSerial(frames);
 }
