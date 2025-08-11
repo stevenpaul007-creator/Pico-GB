@@ -14,11 +14,7 @@
  */
 
 // Peanut-GB emulator settings
-#define ENABLE_LCD 1
-#define ENABLE_SOUND 0 // 1
-#define ENABLE_SDCARD 0 // 1
-#define PEANUT_GB_HIGH_LCD_ACCURACY 1
-#define PEANUT_GB_USE_BIOS 0
+#include "peanut_gb_options.h"
 #include "peanut_gb.h"
 
 /* C Headers */
@@ -39,6 +35,9 @@
 #include "core.h"
 #include "game_bin.h"
 #include "i2s.h"
+
+#define GBCOLOR_HEADER_ONLY
+#include "gbcolors.h"
 
 /* GPIO Connections. */
 #ifdef USE_PAD_GPIO
@@ -87,6 +86,8 @@ static uint8_t manual_palette_selected = 0;
 
 static PCF8574 pcf8574(0x20, 16, 17);
 
+struct gb_s gb;
+palette_t palette; // Colour palette
 
 static struct
 {
@@ -99,8 +100,6 @@ static struct
   unsigned up : 1;
   unsigned down : 1;
 } prev_joypad_bits;
-
-static struct gb_s gb;
 
 #define putstdio(x) write(1, x, strlen(x))
 

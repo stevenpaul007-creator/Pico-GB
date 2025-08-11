@@ -2,9 +2,6 @@
 
 #include <Arduino.h>
 
-#define GBCOLOR_HEADER_ONLY
-#include "gbcolors.h"
-
 enum class ScalingMode {
   NORMAL = 0,
   STRETCH,
@@ -33,8 +30,6 @@ union core_cmd {
   };
   uint32_t full;
 };
-
-extern palette_t palette; // Colour palette
 
 void lcd_draw_line(struct gb_s* gb, const uint8_t* pixels, const uint_fast8_t line);
 

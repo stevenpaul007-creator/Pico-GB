@@ -1,6 +1,7 @@
 #include <TFT_eSPI.h>
 
 #define PEANUT_GB_HEADER_ONLY
+#include "peanut_gb_options.h"
 #include "peanut_gb.h"
 
 // Note: must be included before core
@@ -14,7 +15,8 @@ static uint8_t scaledLineOffsetTable[LCD_HEIGHT]; // scaled to 240 lines
 /* Pixel data is stored in here. */
 static uint8_t pixels_buffer[LCD_WIDTH];
 
-palette_t palette; // Colour palette
+extern struct gb_s gb;
+extern palette_t palette; // Colour palette
 
 volatile ScalingMode scalingMode = ScalingMode::NORMAL; 
 
@@ -131,16 +133,18 @@ void lcd_text(char* s, uint8_t x, uint8_t y, uint16_t color, uint16_t bgcolor) {
   tft.drawString(s, x, y);
 }
 
-void lcd_display_control(bool invert, int /*ili9225_color_mode_e*/ colour_mode) {
-  // TODO
-}
-
 void core1_lcd_draw_line(const uint_fast8_t line) {
   static uint16_t fb[LCD_WIDTH];
 
-  for (unsigned int x = 0; x < LCD_WIDTH; x++) {
-    fb[x] = palette[(pixels_buffer[x] & LCD_PALETTE_ALL) >> 4]
-                   [pixels_buffer[x] & 3];
+  if (gb.cgb.cgbMode) {
+    for (unsigned int x = 0; x < LCD_WIDTH; x++) {
+      fb[x] = gb.cgb.fixPalette[pixels_buffer[x]];
+    }
+  } else {
+    for (unsigned int x = 0; x < LCD_WIDTH; x++) {
+      fb[x] = palette[(pixels_buffer[x] & LCD_PALETTE_ALL) >> 4]
+                    [pixels_buffer[x] & 3];
+    }
   }
 
   lcd_write_pixels(fb, line, LCD_WIDTH);
