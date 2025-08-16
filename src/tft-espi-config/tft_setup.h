@@ -23,13 +23,11 @@
 // Tell the library to use parallel mode (otherwise SPI is assumed)
 //#define TFT_PARALLEL_8_BIT
 #define TFT_PARALLEL_16_BIT // **** 16-bit parallel ONLY for RP2040 processor ****
-
-// Display type -  only define if RPi display
-//#define RPI_DISPLAY_TYPE // 20MHz maximum SPI
-
-// Only define one driver, the other ones must be commented out
+#define RP2040_PIO_CLK_DIV 4 // 60ns
 #define ILI9341_DRIVER       // Generic driver for common displays
 //#define ILI9341_2_DRIVER     // Alternative ILI9341 driver, see https://github.com/Bodmer/TFT_eSPI/issues/1172
+
+//#define ST7735_DRIVER
 
 #if 0
 #define ST7789_2_DRIVER    // Minimal configuration option, define additional parameters below for this display
@@ -66,7 +64,7 @@
 #define TFT_D7    7
 #define TFT_WR    19      // Write strobe for modified Raspberry Pi TFT only
 #define TFT_DC    20      // Data Command control pin
-#define TFT_CS    21      // Chip select control pin D8
+//#define TFT_CS    21      // Chip select control pin D8
 #define TFT_RST   22      // Reset pin (could connect to NodeMCU RST, see next line)
 //#define TFT_RST  -1     // Set TFT_RST to -1 if the display RESET is connected to NodeMCU RST or 3.3V
 

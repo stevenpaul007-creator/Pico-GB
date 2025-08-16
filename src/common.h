@@ -2,6 +2,12 @@
 
 #include <Arduino.h>
 
+#include "gb.h"
+
+// display is rotated, so TFT_WIDTH/HEIGHT cannot be used
+#define DISPLAY_WIDTH TFT_HEIGHT
+#define DISPLAY_HEIGHT TFT_WIDTH
+
 enum class ScalingMode {
   NORMAL = 0,
   STRETCH,
@@ -10,6 +16,10 @@ enum class ScalingMode {
 };
 
 extern volatile ScalingMode scalingMode; 
+
+extern struct gb_s gb;
+extern palette_t palette; // Colour palette
+extern uint_fast32_t frames;
 
 /* Multicore command structure. */
 union core_cmd {
@@ -31,6 +41,12 @@ union core_cmd {
   uint32_t full;
 };
 
+void nextPalette();
+
+void prevPalette();
+
 void lcd_draw_line(struct gb_s* gb, const uint8_t* pixels, const uint_fast8_t line);
 
 void core1_init();
+
+void reset();

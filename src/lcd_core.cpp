@@ -1,22 +1,20 @@
 #include <TFT_eSPI.h>
 
-#define PEANUT_GB_HEADER_ONLY
-#include "peanut_gb_options.h"
-#include "peanut_gb.h"
+#include "common.h"
 
-// Note: must be included before core
-#include "gbcolors.h"
-#include "core.h"
+#define USE_FRAMEBUFFER
 
 static TFT_eSPI tft = TFT_eSPI();
+#ifdef USE_FRAMEBUFFER
+static TFT_eSprite framebuffer = TFT_eSprite(&tft);
+#else
+static TFT_eSPI& framebuffer = tft;
+#endif
 
 static uint8_t scaledLineOffsetTable[LCD_HEIGHT]; // scaled to 240 lines
 
 /* Pixel data is stored in here. */
 static uint8_t pixels_buffer[LCD_WIDTH];
-
-extern struct gb_s gb;
-extern palette_t palette; // Colour palette
 
 volatile ScalingMode scalingMode = ScalingMode::NORMAL; 
 
@@ -57,35 +55,54 @@ void lcd_draw_line(struct gb_s* gb, const uint8_t pixels[LCD_WIDTH],
   multicore_fifo_push_blocking(cmd.full);
 }
 
-void lcd_write_pixels_normal(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
-  const uint16_t colOffset = (tft.width() - nmemb) / 2;
-  const uint16_t lineOffset = (tft.height() - LCD_HEIGHT) / 2;
-  tft.setAddrWindow(colOffset, lineOffset + line, nmemb, 1);
-  tft.pushColors((uint16_t*) pixels, nmemb, true);
+#ifdef USE_FRAMEBUFFER
+void lcd_pushColors(size_t offset, const uint16_t* pixels, uint_fast16_t count) {
+  uint16_t* image = (uint16_t*) framebuffer.getPointer();
+  memcpy(&image[offset], pixels, count * sizeof(uint16_t));
+}
+#else
+void lcd_pushColors(uint16_t colOffset, uint16_t lineOffset, const uint16_t* pixels, uint_fast16_t count) {
+  framebuffer.setAddrWindow(colOffset, lineOffset, count, 1);
+  tft.pushColors((uint16_t*) pixels, count, true);
+}
+#endif
+
+void lcd_write_pixels_normal(const uint16_t* pixels, uint8_t line, uint_fast16_t count) {
+  const uint16_t colOffset = (DISPLAY_WIDTH - count) / 2;
+  const uint16_t screenLineOffset = (DISPLAY_HEIGHT - LCD_HEIGHT) / 2;
+  const uint16_t lineOffset = screenLineOffset + line;
+  lcd_pushColors(lineOffset * DISPLAY_WIDTH + colOffset, pixels, count);
 }
 
-void lcd_write_pixels_stretched(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
-  static uint16_t doubledPixels[320];
+void lcd_write_pixels_stretched(const uint16_t* pixels, uint8_t line, uint_fast16_t count) {
+  static uint16_t doubledPixels[DISPLAY_WIDTH];
   uint16_t pos = 0;
-  for (int col = 0; col < nmemb; ++col) {
+  for (int col = 0; col < count; ++col) {
     doubledPixels[pos++] = pixels[col];
     doubledPixels[pos++] = pixels[col];
   }
   const uint16_t stretchedWidth = pos;
 
-  uint8_t repeatedLines = IS_REPEATED(line);
-  tft.setAddrWindow(0, scaledLineOffsetTable[line], stretchedWidth, 1);
-  tft.pushColors((uint16_t*)doubledPixels, stretchedWidth, true);
-  if (repeatedLines) {
-    tft.setAddrWindow(0, scaledLineOffsetTable[line] + 1, stretchedWidth, 1);
-    tft.pushColors((uint16_t*)doubledPixels, stretchedWidth, true);
+  const uint8_t lineRepeated = IS_REPEATED(line);
+  const uint16_t lineOffset = scaledLineOffsetTable[line];
+#ifdef USE_FRAMEBUFFER
+  size_t offset = lineOffset * DISPLAY_WIDTH;
+  lcd_pushColors(offset, doubledPixels, stretchedWidth);
+  if (lineRepeated) {
+    lcd_pushColors(offset + DISPLAY_WIDTH, doubledPixels, stretchedWidth);
   }
+#else
+  lcd_pushColors(0, lineOffset, doubledPixels, stretchedWidth);
+  if (lineRepeated) {
+    lcd_pushColors(0, lineOffset, doubledPixels, stretchedWidth);
+  }
+#endif
 }
 
-void lcd_write_pixels_stretched_keep_aspect(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
-  static uint16_t doubledPixels[320];
+void lcd_write_pixels_stretched_keep_aspect(const uint16_t* pixels, uint8_t line, uint_fast16_t count) {
+  static uint16_t doubledPixels[DISPLAY_WIDTH];
   uint16_t pos = 0;
-  for (int col = 0; col < nmemb; ++col) {
+  for (int col = 0; col < count; ++col) {
     doubledPixels[pos++] = pixels[col];
     if (IS_REPEATED(col)) {
       doubledPixels[pos++] = pixels[col];
@@ -93,15 +110,22 @@ void lcd_write_pixels_stretched_keep_aspect(const uint16_t* pixels, uint8_t line
   }
   const uint16_t stretchedWidth = pos;
 
-  const uint16_t colOffset = (tft.width() - stretchedWidth) / 2;
+  const uint16_t colOffset = (DISPLAY_WIDTH - stretchedWidth) / 2;
  
-  uint8_t repeatedLines = IS_REPEATED(line);
-  tft.setAddrWindow(colOffset, scaledLineOffsetTable[line], stretchedWidth, 1);
-  tft.pushColors((uint16_t*)doubledPixels, stretchedWidth, true);
-  if (repeatedLines) {
-    tft.setAddrWindow(colOffset, scaledLineOffsetTable[line] + 1, stretchedWidth, 1);
-    tft.pushColors((uint16_t*)doubledPixels, stretchedWidth, true);
+  uint8_t lineRepeated = IS_REPEATED(line);
+  const uint16_t lineOffset = scaledLineOffsetTable[line];
+#ifdef USE_FRAMEBUFFER
+  size_t offset = lineOffset * DISPLAY_WIDTH + colOffset;
+  lcd_pushColors(offset, doubledPixels, stretchedWidth);
+  if (lineRepeated) {
+    lcd_pushColors(offset + DISPLAY_WIDTH, doubledPixels, stretchedWidth);
   }
+#else
+  lcd_pushColors(colOffset, lineOffset, doubledPixels, stretchedWidth);
+  if (lineRepeated) {
+    lcd_pushColors(colOffset, lineOffset, doubledPixels, stretchedWidth);
+  }
+#endif
 }
 
 void lcd_write_pixels(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
@@ -121,16 +145,16 @@ void lcd_write_pixels(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb)
 }
 
 void lcd_fill(uint16_t color) {
+#ifdef USE_FRAMEBUFFER
+  framebuffer.fillSprite(color);
+#else
   tft.fillScreen(color);
-}
-
-void lcd_fill_rect(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint16_t color) {
-  tft.fillRect(0, 0, tft.width(), tft.height(), TFT_BLACK);
+#endif
 }
 
 void lcd_text(char* s, uint8_t x, uint8_t y, uint16_t color, uint16_t bgcolor) {
-  tft.setTextColor(TFT_WHITE, TFT_BLACK); // TODO
-  tft.drawString(s, x, y);
+  framebuffer.setTextColor(TFT_WHITE, TFT_BLACK); // TODO
+  framebuffer.drawString(s, x, y);
 }
 
 void core1_lcd_draw_line(const uint_fast8_t line) {
@@ -176,10 +200,12 @@ void core1_init() {
   lcd_init();
 
   /* Clear LCD screen. */
-  lcd_fill(0x0000);
+  lcd_fill(TFT_BLACK);
 
-  /* Set LCD window to DMG size. */
-  lcd_fill_rect(31, 16, LCD_WIDTH, LCD_HEIGHT, 0x0000);
+#ifdef USE_FRAMEBUFFER
+  framebuffer.setColorDepth(16);
+  framebuffer.createSprite(tft.width(), tft.height());
+#endif
 
   calcExtraLineTable();
 
