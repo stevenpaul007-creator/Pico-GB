@@ -1,7 +1,10 @@
 #include "common.h"
 #include "input.h"
+#include "i2s-audio.h"
 
 #include "gb.h"
+
+extern i2s_config_t i2s_config;
 
 static struct
 {

@@ -1,7 +1,6 @@
 #pragma once
 
 #define PEANUT_GB_HEADER_ONLY
-#include "peanut_gb_options.h"
 #include "peanut_gb.h"
 
 #define GBCOLOR_HEADER_ONLY

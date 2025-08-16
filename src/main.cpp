@@ -30,7 +30,7 @@
 // #include "sdcard.h"
 #include "common.h"
 #include "game_bin.h"
-#include "i2s.h"
+#include "i2s-audio.h"
 
 #define GBCOLOR_HEADER_ONLY
 #include "gbcolors.h"
@@ -63,7 +63,7 @@ static uint8_t manual_palette_selected = 0;
 
 struct gb_s gb;
 palette_t palette; // Colour palette
-
+i2s_config_t i2s_config;
 uint_fast32_t frames = 0;
 
 #define putstdio(x) write(1, x, strlen(x))
@@ -205,14 +205,16 @@ void setup() {
 
 #if ENABLE_SOUND
   // Allocate memory for the stream buffer
-  stream = malloc(AUDIO_BUFFER_SIZE_BYTES);
+  stream = (uint16_t*) malloc(AUDIO_BUFFER_SIZE_BYTES);
   assert(stream != NULL);
   memset(stream, 0, AUDIO_BUFFER_SIZE_BYTES); // Zero out the stream buffer
 
   // Initialize I2S sound driver
-  i2s_config_t i2s_config = i2s_get_default_config();
+  i2s_config = i2s_get_default_config();
   i2s_config.sample_freq = AUDIO_SAMPLE_RATE;
   i2s_config.dma_trans_count = AUDIO_SAMPLES;
+  i2s_config.data_pin = 26, // DIN
+	i2s_config.clock_pin_base = 27, // BCLK + LRC
   i2s_volume(&i2s_config, 2);
   i2s_init(&i2s_config);
 #endif
@@ -241,8 +243,8 @@ void loop() {
   frames++;
 #if ENABLE_SOUND
   if (!gb.direct.frame_skip) {
-    audio_callback(NULL, stream, AUDIO_BUFFER_SIZE_BYTES);
-    i2s_dma_write(&i2s_config, stream);
+    audio_callback(NULL, (int16_t*) stream, AUDIO_BUFFER_SIZE_BYTES);
+    i2s_dma_write(&i2s_config, (int16_t*) stream);
   }
 #endif
 

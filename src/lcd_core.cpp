@@ -2,7 +2,7 @@
 
 #include "common.h"
 
-#define USE_FRAMEBUFFER
+//#define USE_FRAMEBUFFER
 
 static TFT_eSPI tft = TFT_eSPI();
 #ifdef USE_FRAMEBUFFER
@@ -16,7 +16,7 @@ static uint8_t scaledLineOffsetTable[LCD_HEIGHT]; // scaled to 240 lines
 /* Pixel data is stored in here. */
 static uint8_t pixels_buffer[LCD_WIDTH];
 
-volatile ScalingMode scalingMode = ScalingMode::NORMAL; 
+volatile ScalingMode scalingMode = ScalingMode::STRETCH_KEEP_ASPECT; 
 
 static int lcd_line_busy = 0;
 
@@ -32,13 +32,14 @@ static void calcExtraLineTable() {
 
 void lcd_init(void) {
   tft.init();
-  // tft.initDMA();
+#ifdef USE_FRAMEBUFFER
+  tft.initDMA();
+#endif
   tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
 }
 
-void lcd_draw_line(struct gb_s* gb, const uint8_t pixels[LCD_WIDTH],
-    const uint_fast8_t line) {
+void lcd_draw_line(struct gb_s* gb, const uint8_t pixels[LCD_WIDTH], const uint_fast8_t line) {
   union core_cmd cmd;
 
   /* Wait until previous line is sent. */
@@ -71,7 +72,11 @@ void lcd_write_pixels_normal(const uint16_t* pixels, uint8_t line, uint_fast16_t
   const uint16_t colOffset = (DISPLAY_WIDTH - count) / 2;
   const uint16_t screenLineOffset = (DISPLAY_HEIGHT - LCD_HEIGHT) / 2;
   const uint16_t lineOffset = screenLineOffset + line;
+#ifdef USE_FRAMEBUFFER
   lcd_pushColors(lineOffset * DISPLAY_WIDTH + colOffset, pixels, count);
+#else
+  lcd_pushColors(colOffset, lineOffset, pixels, count);
+#endif
 }
 
 void lcd_write_pixels_stretched(const uint16_t* pixels, uint8_t line, uint_fast16_t count) {
@@ -94,7 +99,7 @@ void lcd_write_pixels_stretched(const uint16_t* pixels, uint8_t line, uint_fast1
 #else
   lcd_pushColors(0, lineOffset, doubledPixels, stretchedWidth);
   if (lineRepeated) {
-    lcd_pushColors(0, lineOffset, doubledPixels, stretchedWidth);
+    lcd_pushColors(0, lineOffset + 1, doubledPixels, stretchedWidth);
   }
 #endif
 }
@@ -123,7 +128,7 @@ void lcd_write_pixels_stretched_keep_aspect(const uint16_t* pixels, uint8_t line
 #else
   lcd_pushColors(colOffset, lineOffset, doubledPixels, stretchedWidth);
   if (lineRepeated) {
-    lcd_pushColors(colOffset, lineOffset, doubledPixels, stretchedWidth);
+    lcd_pushColors(colOffset, lineOffset + 1, doubledPixels, stretchedWidth);
   }
 #endif
 }
@@ -173,6 +178,13 @@ void core1_lcd_draw_line(const uint_fast8_t line) {
 
   lcd_write_pixels(fb, line, LCD_WIDTH);
   __atomic_store_n(&lcd_line_busy, 0, __ATOMIC_SEQ_CST);
+
+#ifdef USE_FRAMEBUFFER
+  if (line == LCD_HEIGHT - 1) {
+    tft.setSwapBytes(true);
+    tft.pushImageDMA(0, 0, framebuffer.width(), framebuffer.height(), (uint16_t *) framebuffer.getPointer());
+  }
+#endif
 }
 
 void core1DispatchLoop() {
