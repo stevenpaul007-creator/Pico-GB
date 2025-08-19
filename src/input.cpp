@@ -1,10 +1,32 @@
+/**
+ * Copyright (C) 2022 by Mahyar Koshkouei <mk@deltabeard.com>
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+ * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+ * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+ * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
 #include "common.h"
 #include "input.h"
-#include "i2s-audio.h"
-
 #include "gb.h"
 
+#if ENABLE_SDCARD
+#include "card_loader.h"
+#endif
+
+#if ENABLE_SOUND
+#include "i2s-audio.h"
 extern i2s_config_t i2s_config;
+#endif
+
+extern uint8_t gamma_int;
 
 static struct
 {
@@ -18,13 +40,30 @@ static struct
   unsigned down : 1;
 } prev_joypad_bits;
 
-#ifndef USE_PAD_GPIO
-static PCF8574 pcf8574(0x20, 16, 17);
-#endif
+#ifdef USE_JOYPAD_I2C_IO_EXPANDER
 
+static PCF8574 pcf8574(PCF8574_ADDR, PCF8574_SDA, PCF8574_SCL);
 
-#ifdef USE_PAD_GPIO
-void initJoypad() {
+static void initJoypadI2CIoExpander() {
+  for (int pin = 0; pin < 8; ++pin) {
+    pcf8574.pinMode(pin, INPUT_PULLUP);
+  }
+
+  pcf8574.setLatency(5);
+  
+  if (!pcf8574.begin()){
+		Serial.println("PCF8574 initialization failed");
+    reset();
+	}
+}
+
+bool readJoypad(uint8_t pin) {
+  return pcf8574.digitalRead(pin);
+}
+
+#else
+
+static void initJoypadGpios() {
   gpio_set_function(GPIO_UP, GPIO_FUNC_SIO);
   gpio_set_function(GPIO_DOWN, GPIO_FUNC_SIO);
   gpio_set_function(GPIO_LEFT, GPIO_FUNC_SIO);
@@ -50,24 +89,24 @@ void initJoypad() {
   gpio_pull_up(GPIO_A);
   gpio_pull_up(GPIO_B);
   gpio_pull_up(GPIO_SELECT);
-  gpio_pull_up(GPIO_START);
+  gpio_pull_up(GPIO_START);  
 }
-#else
-void initJoypad() {
-  for (int pin = 0; pin < 8; ++pin) {
-    pcf8574.pinMode(pin, INPUT_PULLUP);
-  }
 
-  pcf8574.setLatency(5);
-  
-  if (pcf8574.begin()){
-		Serial.println("PCF8574 initialized");
-	}else{
-		Serial.println("PCF8574 initialization failed");
-    while (true) ;
-	}
+bool readJoypad(uint8_t pin) {
+  return gpio_get(pin);
 }
+
 #endif
+
+void initJoypad() {
+  Serial.println("Init Joypad IOs ...");
+#ifdef USE_JOYPAD_I2C_IO_EXPANDER
+  initJoypadI2CIoExpander();
+#else
+  initJoypadGpios();
+#endif
+  Serial.println("Joypad IOs initialized");
+}
 
 void handleSerial() {
   static uint64_t start_time = time_us_64();
@@ -158,7 +197,7 @@ void handleSerial() {
   }
 }
 
-void handlePad() {
+void handleJoypad() {
   /* Update buttons state */
   prev_joypad_bits.up = gb.direct.joypad_bits.up;
   prev_joypad_bits.down = gb.direct.joypad_bits.down;
@@ -169,16 +208,6 @@ void handlePad() {
   prev_joypad_bits.select = gb.direct.joypad_bits.select;
   prev_joypad_bits.start = gb.direct.joypad_bits.start;
 
-#ifdef USE_PAD_GPIO
-  gb.direct.joypad_bits.up = gpio_get(PIN_UP);
-  gb.direct.joypad_bits.down = gpio_get(PIN_DOWN);
-  gb.direct.joypad_bits.left = gpio_get(PIN_LEFT);
-  gb.direct.joypad_bits.right = gpio_get(PIN_RIGHT);
-  gb.direct.joypad_bits.a = gpio_get(PIN_A);
-  gb.direct.joypad_bits.b = gpio_get(PIN_B);
-  gb.direct.joypad_bits.select = gpio_get(PIN_SELECT);
-  gb.direct.joypad_bits.start = gpio_get(PIN_START);
-#else
   #if 0
   Serial.printf("pins:\n");
   for (int i = 0; i < 8; ++i) {
@@ -188,14 +217,30 @@ void handlePad() {
   Serial.printf("\n");
   #endif
 
-  gb.direct.joypad_bits.up = pcf8574.digitalRead(PIN_UP);
-  gb.direct.joypad_bits.down = pcf8574.digitalRead(PIN_DOWN);
-  gb.direct.joypad_bits.left = pcf8574.digitalRead(PIN_LEFT);
-  gb.direct.joypad_bits.right = pcf8574.digitalRead(PIN_RIGHT);
-  gb.direct.joypad_bits.a = pcf8574.digitalRead(PIN_A);
-  gb.direct.joypad_bits.b = pcf8574.digitalRead(PIN_B);
-  gb.direct.joypad_bits.select = pcf8574.digitalRead(PIN_SELECT);
-  gb.direct.joypad_bits.start = pcf8574.digitalRead(PIN_START);
+  gb.direct.joypad_bits.up = readJoypad(PIN_UP);
+  gb.direct.joypad_bits.down = readJoypad(PIN_DOWN);
+  gb.direct.joypad_bits.left = readJoypad(PIN_LEFT);
+  gb.direct.joypad_bits.right = readJoypad(PIN_RIGHT);
+  gb.direct.joypad_bits.a = readJoypad(PIN_A);
+  gb.direct.joypad_bits.b = readJoypad(PIN_B);
+  gb.direct.joypad_bits.select = readJoypad(PIN_SELECT);
+  gb.direct.joypad_bits.start = readJoypad(PIN_START);
+
+#if 0
+  if (!gb.direct.joypad_bits.up) {
+    if (!gb.direct.joypad_bits.select && prev_joypad_bits.select) {
+      gamma_int++;
+      Serial.printf("gamma: %d\n", gamma_int);
+      get_colour_palette(palette, 0, 5);
+    }
+  }
+  if (!gb.direct.joypad_bits.down) {
+    if (!gb.direct.joypad_bits.select && prev_joypad_bits.select) {
+      gamma_int--;
+      get_colour_palette(palette, 0, 5);
+      Serial.printf("gamma: %d\n", gamma_int);
+    }
+  }
 #endif
 
   /* hotkeys (select + * combo)*/

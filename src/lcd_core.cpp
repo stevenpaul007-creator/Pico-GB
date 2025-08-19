@@ -1,11 +1,24 @@
-#include <TFT_eSPI.h>
+/**
+ * Copyright (C) 2022 by Mahyar Koshkouei <mk@deltabeard.com>
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+ * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+ * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+ * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+ * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+ #include <TFT_eSPI.h>
 
 #include "common.h"
 
-//#define USE_FRAMEBUFFER
-
-static TFT_eSPI tft = TFT_eSPI();
-#ifdef USE_FRAMEBUFFER
+TFT_eSPI tft = TFT_eSPI();
+#if ENABLE_LCD_FRAMEBUFFER
 static TFT_eSprite framebuffer = TFT_eSprite(&tft);
 #else
 static TFT_eSPI& framebuffer = tft;
@@ -30,10 +43,13 @@ static void calcExtraLineTable() {
   }
 }
 
-void lcd_init(void) {
+void lcd_init(bool isCore1) {
   tft.init();
-#ifdef USE_FRAMEBUFFER
-  tft.initDMA();
+#if ENABLE_LCD_DMA
+  // do not enable DMA on core0 as it fails on core1 if it is already enabled
+  if (isCore1 && !tft.initDMA(/*ctrl_cs not supported in RP2040 implementation*/)) {
+    error("Failed to initialize TFT DMA");
+  }
 #endif
   tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
@@ -56,7 +72,7 @@ void lcd_draw_line(struct gb_s* gb, const uint8_t pixels[LCD_WIDTH], const uint_
   multicore_fifo_push_blocking(cmd.full);
 }
 
-#ifdef USE_FRAMEBUFFER
+#if ENABLE_LCD_FRAMEBUFFER
 void lcd_pushColors(size_t offset, const uint16_t* pixels, uint_fast16_t count) {
   uint16_t* image = (uint16_t*) framebuffer.getPointer();
   memcpy(&image[offset], pixels, count * sizeof(uint16_t));
@@ -64,7 +80,18 @@ void lcd_pushColors(size_t offset, const uint16_t* pixels, uint_fast16_t count) 
 #else
 void lcd_pushColors(uint16_t colOffset, uint16_t lineOffset, const uint16_t* pixels, uint_fast16_t count) {
   framebuffer.setAddrWindow(colOffset, lineOffset, count, 1);
+#if ENABLE_LCD_DMA
+  // DMA mode does not have a measurable effect without a framebuffer
+  static uint16_t dmaBuffer[DISPLAY_WIDTH];
+  tft.dmaWait();
+  memcpy(dmaBuffer, pixels, count * sizeof(uint16_t));
+  tft.setSwapBytes(true);
+  tft.startWrite(); // manual start required as DMA transfer is asynchronous
+  tft.pushPixelsDMA((uint16_t*) dmaBuffer, count);
+  //tft.endWrite(); // do not call endWrite(), as it will wait for the DMA transfer to finish, which results in no performance gain
+#else
   tft.pushColors((uint16_t*) pixels, count, true);
+#endif
 }
 #endif
 
@@ -72,7 +99,7 @@ void lcd_write_pixels_normal(const uint16_t* pixels, uint8_t line, uint_fast16_t
   const uint16_t colOffset = (DISPLAY_WIDTH - count) / 2;
   const uint16_t screenLineOffset = (DISPLAY_HEIGHT - LCD_HEIGHT) / 2;
   const uint16_t lineOffset = screenLineOffset + line;
-#ifdef USE_FRAMEBUFFER
+#if ENABLE_LCD_FRAMEBUFFER
   lcd_pushColors(lineOffset * DISPLAY_WIDTH + colOffset, pixels, count);
 #else
   lcd_pushColors(colOffset, lineOffset, pixels, count);
@@ -90,7 +117,7 @@ void lcd_write_pixels_stretched(const uint16_t* pixels, uint8_t line, uint_fast1
 
   const uint8_t lineRepeated = IS_REPEATED(line);
   const uint16_t lineOffset = scaledLineOffsetTable[line];
-#ifdef USE_FRAMEBUFFER
+#if ENABLE_LCD_FRAMEBUFFER
   size_t offset = lineOffset * DISPLAY_WIDTH;
   lcd_pushColors(offset, doubledPixels, stretchedWidth);
   if (lineRepeated) {
@@ -119,7 +146,7 @@ void lcd_write_pixels_stretched_keep_aspect(const uint16_t* pixels, uint8_t line
  
   uint8_t lineRepeated = IS_REPEATED(line);
   const uint16_t lineOffset = scaledLineOffsetTable[line];
-#ifdef USE_FRAMEBUFFER
+#if ENABLE_LCD_FRAMEBUFFER
   size_t offset = lineOffset * DISPLAY_WIDTH + colOffset;
   lcd_pushColors(offset, doubledPixels, stretchedWidth);
   if (lineRepeated) {
@@ -133,6 +160,7 @@ void lcd_write_pixels_stretched_keep_aspect(const uint16_t* pixels, uint8_t line
 #endif
 }
 
+// Writes pixels to screen or framebuffer
 void lcd_write_pixels(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb) {
   switch (scalingMode)
   {
@@ -149,17 +177,26 @@ void lcd_write_pixels(const uint16_t* pixels, uint8_t line, uint_fast16_t nmemb)
   }
 }
 
+#if ENABLE_LCD_FRAMEBUFFER
+// Writes framebuffer to screen
+void lcd_write_framebuffer_to_screen() {
+    tft.setSwapBytes(true);
+#ifdef ENABLE_LCD_DMA
+    tft.startWrite(); // manual start required as DMA transfer is asynchronous
+    tft.pushImageDMA(0, 0, framebuffer.width(), framebuffer.height(), (uint16_t *) framebuffer.getPointer());
+    //tft.endWrite(); // do not call endWrite(), as it will wait for the DMA transfer to finish, which results in no performance gain
+#else
+    tft.pushImage(0, 0, framebuffer.width(), framebuffer.height(), (uint16_t *) framebuffer.getPointer());
+#endif
+}
+#endif
+
 void lcd_fill(uint16_t color) {
-#ifdef USE_FRAMEBUFFER
+#if ENABLE_LCD_FRAMEBUFFER
   framebuffer.fillSprite(color);
 #else
   tft.fillScreen(color);
 #endif
-}
-
-void lcd_text(char* s, uint8_t x, uint8_t y, uint16_t color, uint16_t bgcolor) {
-  framebuffer.setTextColor(TFT_WHITE, TFT_BLACK); // TODO
-  framebuffer.drawString(s, x, y);
 }
 
 void core1_lcd_draw_line(const uint_fast8_t line) {
@@ -179,10 +216,9 @@ void core1_lcd_draw_line(const uint_fast8_t line) {
   lcd_write_pixels(fb, line, LCD_WIDTH);
   __atomic_store_n(&lcd_line_busy, 0, __ATOMIC_SEQ_CST);
 
-#ifdef USE_FRAMEBUFFER
+#if ENABLE_LCD_FRAMEBUFFER
   if (line == LCD_HEIGHT - 1) {
-    tft.setSwapBytes(true);
-    tft.pushImageDMA(0, 0, framebuffer.width(), framebuffer.height(), (uint16_t *) framebuffer.getPointer());
+    lcd_write_framebuffer_to_screen();
   }
 #endif
 }
@@ -209,20 +245,17 @@ void core1DispatchLoop() {
 
 void core1_init() {
   /* Initialise and control LCD on core 1. */
-  lcd_init();
+  lcd_init(true);
 
-  /* Clear LCD screen. */
-  lcd_fill(TFT_BLACK);
-
-#ifdef USE_FRAMEBUFFER
+#if ENABLE_LCD_FRAMEBUFFER
   framebuffer.setColorDepth(16);
   framebuffer.createSprite(tft.width(), tft.height());
 #endif
 
-  calcExtraLineTable();
+  /* Clear LCD screen. */
+  lcd_fill(TFT_BLACK);
 
-  // Sleep used for debugging LCD window.
-  // sleep_ms(1000);
+  calcExtraLineTable();
 
   while (true) {
     core1DispatchLoop();

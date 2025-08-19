@@ -5,3 +5,12 @@
 
 #define GBCOLOR_HEADER_ONLY
 #include "gbcolors.h"
+
+extern struct gb_s gb;
+extern palette_t palette; // Colour palette
+extern const uint8_t* rom;
+
+#define RAM_SIZE 32768
+extern uint8_t ram[RAM_SIZE];
+
+gb_init_error_e initGbContext();

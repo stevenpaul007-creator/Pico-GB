@@ -62,11 +62,11 @@
 #define TFT_D5    5
 #define TFT_D6    6
 #define TFT_D7    7
-#define TFT_WR    19      // Write strobe for modified Raspberry Pi TFT only
-#define TFT_DC    20      // Data Command control pin
-//#define TFT_CS    21      // Chip select control pin D8
-#define TFT_RST   22      // Reset pin (could connect to NodeMCU RST, see next line)
-//#define TFT_RST  -1     // Set TFT_RST to -1 if the display RESET is connected to NodeMCU RST or 3.3V
+#define TFT_WR    18      // Write strobe for modified Raspberry Pi TFT only
+#define TFT_DC    19      // Data Command control pin
+#define TFT_CS    22      // Chip select control pin D8
+//#define TFT_RST   22      // Reset pin (could connect to NodeMCU RST, see next line)
+#define TFT_RST  -1     // Set TFT_RST to -1 if the display RESET is connected to NodeMCU RST or 3.3V
 
 // ##################################################################################
 //
@@ -79,8 +79,8 @@
 // normally necessary. If all fonts are loaded the extra FLASH space required is
 // about 17Kbytes. To save FLASH space only enable the fonts you need!
 
-#if 0
 #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
+#if 0
 #define LOAD_FONT2  // Font 2. Small 16 pixel high font, needs ~3534 bytes in FLASH, 96 characters
 #define LOAD_FONT4  // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters
 #define LOAD_FONT6  // Font 6. Large 48 pixel font, needs ~2666 bytes in FLASH, only characters 1234567890:-.apm

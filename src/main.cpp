@@ -15,29 +15,32 @@
 
 #include "gb.h"
 
-/* C Headers */
+// C Headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* RP2040 Headers */
+// RP2040 Headers
 #include <hardware/vreg.h>
 
-/* Project headers */
+// Project headers
 #include "hedley.h"
-#include "minigb_apu.h"
 
-// #include "sdcard.h"
 #include "common.h"
-#include "game_bin.h"
-#include "i2s-audio.h"
-
-#define GBCOLOR_HEADER_ONLY
-#include "gbcolors.h"
-
 #include "input.h"
 
+#if ENABLE_SDCARD
+#include "card_loader.h"
+#include "SdFat.h"
+#ifdef ENABLE_USB_STORAGE_DEVICE
+#include "msc.h"
+#endif
+#endif
+
 #if ENABLE_SOUND
+#include "i2s-audio.h"
+#include "minigb_apu.h"
+
 /**
  * Global variables for audio task
  * stream contains N=AUDIO_SAMPLES samples
@@ -46,86 +49,24 @@
  * This is intended to be played at AUDIO_SAMPLE_RATE Hz
  */
 uint16_t* stream;
+
+i2s_config_t i2s_config;
 #endif
 
-/** Definition of ROM data
- * We're going to erase and reprogram a region 1Mb from the start of the flash
- * Once done, we can access this at XIP_BASE + 1Mb.
- * Game Boy DMG ROM size ranges from 32768 bytes (e.g. Tetris) to 1,048,576 bytes (e.g. Pokemod Red)
- */
-// #define FLASH_TARGET_OFFSET (1024 * 1024)
-// const uint8_t *rom = (const uint8_t *)(XIP_BASE + FLASH_TARGET_OFFSET);
-const uint8_t* rom = GAME_DATA;
-static unsigned char rom_bank0[65536];
-
-static uint8_t ram[32768];
 static uint8_t manual_palette_selected = 0;
 
-struct gb_s gb;
-palette_t palette; // Colour palette
-i2s_config_t i2s_config;
 uint_fast32_t frames = 0;
-
-#define putstdio(x) write(1, x, strlen(x))
-
-/**
- * Returns a byte from the ROM file at the given address.
- */
-uint8_t gb_rom_read(struct gb_s* gb, const uint_fast32_t addr) {
-  (void)gb;
-  if (addr < sizeof(rom_bank0))
-    return rom_bank0[addr];
-
-  return rom[addr];
-}
-
-/**
- * Returns a byte from the cartridge RAM at the given address.
- */
-uint8_t gb_cart_ram_read(struct gb_s* gb, const uint_fast32_t addr) {
-  (void)gb;
-  return ram[addr];
-}
-
-/**
- * Writes a given byte to the cartridge RAM at the given address.
- */
-void gb_cart_ram_write(struct gb_s* gb, const uint_fast32_t addr,
-    const uint8_t val) {
-  ram[addr] = val;
-}
-
-/**
- * Ignore all errors.
- */
-void gb_error(struct gb_s* gb, const enum gb_error_e gb_err, const uint16_t addr) {
-#if 1
-  const char* gb_err_str[4] = {
-      "UNKNOWN",
-      "INVALID OPCODE",
-      "INVALID READ",
-      "INVALID WRITE"};
-  Serial.printf("Error %d occurred: %s at %04X\n.\n", gb_err, gb_err_str[gb_err], addr);
-//	abort();
-#endif
-}
 
 void startEmulator() {
 #if ENABLE_LCD
 #if ENABLE_SDCARD
-  /* ROM File selector */
-  lcd_init();
-  tft.fillScreen(TFT_BLACK);
+  Serial.println("Starting ROM file selector ...");
   rom_file_selector();
 #endif
 #endif
 
-  /* Initialise GB context. */
-  memcpy(rom_bank0, rom, sizeof(rom_bank0));
-  auto ret = gb_init(&gb, &gb_rom_read, &gb_cart_ram_read,
-      &gb_cart_ram_write, &gb_error, NULL);
-  Serial.println("GB ");
-
+  Serial.println("Init GB context ...");  
+  auto ret = initGbContext();
   if (ret != GB_INIT_NO_ERROR) {
     Serial.printf("Error: %d\n", ret);
     reset();
@@ -139,32 +80,36 @@ void startEmulator() {
   gb_init_lcd(&gb, &lcd_draw_line);
 
   /* Start Core1, which processes requests to the LCD. */
-  Serial.println("CORE1 ");
+  Serial.println("Starting Core1 ...");
   multicore_launch_core1(core1_init);
-
-  Serial.println("LCD ");
 #endif
 
 #if ENABLE_SOUND
   // Initialize audio emulation
+  Serial.println("Starting audio ...");
   audio_init();
-
-  Serial.println("AUDIO ");
 #endif
 
 #if ENABLE_SDCARD
-  /* Load Save File. */
-  read_cart_ram_file(&gb);
+  //Serial.println("Load save file ...");
+  //read_cart_ram_file(&gb);
 #endif
 
   Serial.print("\n> ");
 }
 
-void reset() {
+void reset(uint32_t sleepMs) {
   Serial.println("\nEmulation Ended");
+
+  sleep_ms(sleepMs);
+
   /* stop lcd task running on core 1 */
   multicore_reset_core1();
-  watchdog_reboot(0,0,0);
+  watchdog_reboot(0, 0, 0);
+}
+
+void halt() {
+  while (true) {}
 }
 
 void overclock() {
@@ -177,33 +122,10 @@ void overclock() {
   sleep_ms(2);
 }
 
-void setup() {
-  overclock();
-
-  /* Initialise USB serial connection for debugging. */
-  Serial.begin(115200);
-  //while (!Serial) ;
-  //delay(2000);
-
-#if ENABLE_SDCARD
-  time_init();
-#endif
-  // sleep_ms(5000);
-  Serial.println("INIT: ");
-
-  /* Initialise joypad. */
-  initJoypad();
-
-/* Set SPI clock to use high frequency. */
-#if 0
-	clock_configure(clk_peri, 0,
-			CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
-			125 * 1000 * 1000, 125 * 1000 * 1000);
-	spi_init(spi0, 30*1000*1000);
-	spi_set_format(spi0, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
-#endif
-
+void initSound() {
 #if ENABLE_SOUND
+  Serial.println("Initialize Sound ...");
+
   // Allocate memory for the stream buffer
   stream = (uint16_t*) malloc(AUDIO_BUFFER_SIZE_BYTES);
   assert(stream != NULL);
@@ -213,11 +135,37 @@ void setup() {
   i2s_config = i2s_get_default_config();
   i2s_config.sample_freq = AUDIO_SAMPLE_RATE;
   i2s_config.dma_trans_count = AUDIO_SAMPLES;
-  i2s_config.data_pin = 26, // DIN
-	i2s_config.clock_pin_base = 27, // BCLK + LRC
+  i2s_config.data_pin = I2S_DIN_PIN,
+	i2s_config.clock_pin_base = I2S_BCLK_LRC_PIN_BASE,
   i2s_volume(&i2s_config, 2);
   i2s_init(&i2s_config);
+
+  Serial.println("Sound initialized");
 #endif
+}
+
+void setup() {
+#if ENABLE_LCD
+  lcd_init(false);
+#endif
+
+  overclock();
+
+  // Initialise USB serial connection for debugging.
+  Serial.begin(115200);
+  //while (!Serial) ;
+  //delay(2000);
+
+#if ENABLE_SDCARD
+  init_sdcard();
+#if ENABLE_USB_STORAGE_DEVICE
+  initUsbStorageDevice();
+#endif
+#endif
+  
+  initJoypad();
+
+  initSound();
 
   startEmulator();
 }
@@ -248,6 +196,15 @@ void loop() {
   }
 #endif
 
-  handlePad();
+  handleJoypad();
   handleSerial();
+}
+
+void error(String message) {
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_RED);
+  tft.drawString(message, 0, ERROR_TEXT_OFFSET, FONT_ID);
+  Serial.printf("E %s\n", message.c_str());
+  Serial.flush();
+  reset(5000);
 }
