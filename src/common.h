@@ -98,7 +98,6 @@ void prevPalette();
 
 void lcd_init(bool isCore1);
 void lcd_draw_line(struct gb_s* gb, const uint8_t* pixels, const uint_fast8_t line);
-void lcd_fill(uint16_t color);
 
 void core1_init();
 
