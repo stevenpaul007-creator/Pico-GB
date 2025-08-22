@@ -23,21 +23,70 @@
 // Tell the library to use parallel mode (otherwise SPI is assumed)
 //#define TFT_PARALLEL_8_BIT
 #define TFT_PARALLEL_16_BIT // **** 16-bit parallel ONLY for RP2040 processor ****
-#define RP2040_PIO_CLK_DIV 4 // 60ns
+
+// Only define one driver, the other ones must be commented out
 #define ILI9341_DRIVER       // Generic driver for common displays
 //#define ILI9341_2_DRIVER     // Alternative ILI9341 driver, see https://github.com/Bodmer/TFT_eSPI/issues/1172
+//#define ST7735_DRIVER      // Define additional parameters below for this display
+//#define ILI9163_DRIVER     // Define additional parameters below for this display
+//#define S6D02A1_DRIVER
+//#define RPI_ILI9486_DRIVER // 20MHz maximum SPI
+//#define HX8357D_DRIVER
+//#define ILI9481_DRIVER
+//#define ILI9486_DRIVER
+//#define ILI9488_DRIVER     // WARNING: Do not connect ILI9488 display SDO to MISO if other devices share the SPI bus (TFT SDO does NOT tristate when CS is high)
+//#define ST7789_DRIVER      // Full configuration option, define additional parameters below for this display
+//#define ST7789_2_DRIVER    // Minimal configuration option, define additional parameters below for this display
+//#define R61581_DRIVER
+//#define RM68140_DRIVER
+//#define ST7796_DRIVER
+//#define SSD1351_DRIVER
+//#define SSD1963_480_DRIVER
+//#define SSD1963_800_DRIVER
+//#define SSD1963_800ALT_DRIVER
+//#define ILI9225_DRIVER
+//#define GC9A01_DRIVER
 
-//#define ST7735_DRIVER
-
-#if 0
-#define ST7789_2_DRIVER    // Minimal configuration option, define additional parameters below for this display
-#define TFT_INVERSION_OFF
-#define TFT_RGB_ORDER TFT_BGR  // Colour order Blue-Green-Red
-#endif
+// For ST7735, ST7789 and ILI9341 ONLY, define the colour order IF the blue and red are swapped on your display
+// Try ONE option at a time to find the correct colour order for your display
+//  #define TFT_RGB_ORDER TFT_RGB  // Colour order Red-Green-Blue
+//  #define TFT_RGB_ORDER TFT_BGR  // Colour order Blue-Green-Red
 
 // For ST7789, ST7735, ILI9163 and GC9A01 ONLY, define the pixel width and height in portrait orientation
+// #define TFT_WIDTH  80
+// #define TFT_WIDTH  128
+// #define TFT_WIDTH  172 // ST7789 172 x 320
+// #define TFT_WIDTH  170 // ST7789 170 x 320
 #define TFT_WIDTH  240 // ST7789 240 x 240 and 240 x 320
+// #define TFT_HEIGHT 160
+// #define TFT_HEIGHT 128
+// #define TFT_HEIGHT 240 // ST7789 240 x 240
 #define TFT_HEIGHT 320 // ST7789 240 x 320
+// #define TFT_HEIGHT 240 // GC9A01 240 x 240
+
+// For ST7735 ONLY, define the type of display, originally this was based on the
+// colour of the tab on the screen protector film but this is not always true, so try
+// out the different options below if the screen does not display graphics correctly,
+// e.g. colours wrong, mirror images, or stray pixels at the edges.
+// Comment out ALL BUT ONE of these options for a ST7735 display driver, save this
+// this User_Setup file, then rebuild and upload the sketch to the board again:
+
+// #define ST7735_INITB
+// #define ST7735_GREENTAB
+// #define ST7735_GREENTAB2
+// #define ST7735_GREENTAB3
+// #define ST7735_GREENTAB128    // For 128 x 128 display
+// #define ST7735_GREENTAB160x80 // For 160 x 80 display (BGR, inverted, 26 offset)
+// #define ST7735_ROBOTLCD       // For some RobotLCD Arduino shields (128x160, BGR, https://docs.arduino.cc/retired/getting-started-guides/TFT)
+// #define ST7735_REDTAB
+// #define ST7735_BLACKTAB
+// #define ST7735_REDTAB160x80   // For 160 x 80 display with 24 pixel offset
+
+// If colours are inverted (white shows as black) then uncomment one of the next
+// 2 lines try both options, one of the options should correct the inversion.
+
+// #define TFT_INVERSION_ON
+// #define TFT_INVERSION_OFF
 
 // ##################################################################################
 //
@@ -117,6 +166,8 @@
 //#define RP2040_PIO_CLK_DIV 2 // 64ns write cycle at 125MHz CPU clock
 //#define RP2040_PIO_CLK_DIV 3 // 96ns write cycle at 125MHz CPU clock
 
+#define RP2040_PIO_CLK_DIV 4 // ~60ns write cycle at 250MHz CPU clock
+
 // For the RP2040 processor define the SPI port channel used (default 0 if undefined)
 //#define TFT_SPI_PORT 1 // Set to 0 if SPI0 pins are used, or 1 if spi1 pins used
 
@@ -142,7 +193,7 @@
 #define SPI_READ_FREQUENCY  20000000
 
 // The XPT2046 requires a lower SPI clock rate of 2.5MHz so we define that here:
-#define SPI_TOUCH_FREQUENCY  2500000
+//#define SPI_TOUCH_FREQUENCY  2500000
 
 // The ESP32 has 2 free SPI ports i.e. VSPI and HSPI, the VSPI is the default.
 // If the VSPI port is in use and pins are not accessible (e.g. TTGO T-Beam)
