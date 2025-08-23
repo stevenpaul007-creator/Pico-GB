@@ -92,10 +92,6 @@ union core_cmd {
   uint32_t full;
 };
 
-void nextPalette();
-
-void prevPalette();
-
 void lcd_init(bool isCore1);
 void lcd_draw_line(struct gb_s* gb, const uint8_t* pixels, const uint_fast8_t line);
 

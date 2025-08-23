@@ -28,6 +28,8 @@ extern i2s_config_t i2s_config;
 
 extern uint8_t gamma_int;
 
+static uint8_t palette_selected = 0;
+
 static struct
 {
   unsigned a : 1;
@@ -106,6 +108,27 @@ void initJoypad() {
   initJoypadGpios();
 #endif
   Serial.println("Joypad IOs initialized");
+}
+
+#define PALETTE_COUNT 15
+
+void updatePalette() {
+  if (palette_selected == 0) {
+    char rom_title[16];
+    auto_assign_palette(palette, gb_colour_hash(&gb), gb_get_rom_name(&gb, rom_title));
+  } else {
+    manual_assign_palette(palette, palette_selected - 1);
+  }
+}
+
+void nextPalette() {
+  palette_selected = (palette_selected + 1) % PALETTE_COUNT;
+  updatePalette();
+}
+
+void prevPalette() {
+  palette_selected = (palette_selected + PALETTE_COUNT - 1) % PALETTE_COUNT;
+  updatePalette();
 }
 
 void handleSerial() {

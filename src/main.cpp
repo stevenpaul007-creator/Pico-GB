@@ -53,8 +53,6 @@ uint16_t* stream;
 i2s_config_t i2s_config;
 #endif
 
-static uint8_t manual_palette_selected = 0;
-
 uint_fast32_t frames = 0;
 
 void startEmulator() {
@@ -168,16 +166,6 @@ void setup() {
   initSound();
 
   startEmulator();
-}
-
-void nextPalette() {
-  manual_palette_selected = manual_palette_selected < 12 ? manual_palette_selected + 1 : 0;
-  manual_assign_palette(palette, manual_palette_selected);
-}
-
-void prevPalette() {
-  manual_palette_selected = manual_palette_selected > 0 ? manual_palette_selected - 1 : 12;
-  manual_assign_palette(palette, manual_palette_selected);
 }
 
 void loop() {
