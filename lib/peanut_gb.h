@@ -827,9 +827,10 @@ uint8_t __gb_read(struct gb_s *gb, uint16_t addr)
 	case 0x0:
 		/* IO_BOOT is only set to 1 if gb->gb_bootrom_read was not NULL
 		 * on reset. */
-		if(gb->hram_io[IO_BOOT] == 0 && addr < 0x0100)
-		{
-			return gb->gb_bootrom_read(gb, addr);
+		if(gb->hram_io[IO_BOOT] == 0) {
+			if ((gb->cgb.cgbMode && addr < 0x0900) || (!gb->cgb.cgbMode && addr < 0x0100)) {
+				return gb->gb_bootrom_read(gb, addr);
+			}
 		}
 
 		/* Fallthrough */
