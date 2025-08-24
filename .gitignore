@@ -3,3 +3,6 @@ uf2
 .pio
 .vscode
 *_bin.h
+*.bin
+*.gb
+*.gbc

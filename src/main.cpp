@@ -64,11 +64,7 @@ void startEmulator() {
 #endif
 
   Serial.println("Init GB context ...");  
-  auto ret = initGbContext();
-  if (ret != GB_INIT_NO_ERROR) {
-    Serial.printf("Error: %d\n", ret);
-    reset();
-  }
+  initGbContext();
 
   /* Automatically assign a colour palette to the game */
   char rom_title[16];

@@ -63,8 +63,29 @@ static void gb_error(struct gb_s* gb, const enum gb_error_e gb_err, const uint16
   error(String("Error ") + gb_err + " occurred: " + gb_err_str[gb_err] + " at 0x" + String(addr, 16));
 }
 
-gb_init_error_e initGbContext() {
+#ifdef USE_BOOT_ROM
+#include "boot_cgb_bin.h"
+#include "boot_gb_bin.h"
+static uint8_t gb_bootrom_read(struct gb_s* gb, const uint_fast16_t addr) {
+	if (gb->cgb.cgbMode) {
+    return CGB_BOOT_ROM[addr];
+  } else {
+    return GB_BOOT_ROM[addr];
+  }
+}
+#endif
+
+void initGbContext() {
   memcpy(rom_bank0, rom, sizeof(rom_bank0));
-  return gb_init(&gb, &gb_rom_read, &gb_cart_ram_read,
-      &gb_cart_ram_write, &gb_error, NULL);
+
+  auto ret = gb_init(&gb, &gb_rom_read, &gb_cart_ram_read, &gb_cart_ram_write, &gb_error, NULL);
+  if (ret != GB_INIT_NO_ERROR) {
+    error(String("Error initializing emulator: ") + ret);
+  }
+
+#ifdef USE_BOOT_ROM
+  // gb_bootrom_read has to be set after gb_init(), as it sets it to NULL
+  gb_set_bootrom(&gb, &gb_bootrom_read);
+  gb_reset(&gb);
+#endif
 }

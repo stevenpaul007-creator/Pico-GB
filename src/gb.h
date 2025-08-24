@@ -13,4 +13,4 @@ extern const uint8_t* rom;
 #define RAM_SIZE 32768
 extern uint8_t ram[RAM_SIZE];
 
-gb_init_error_e initGbContext();
+void initGbContext();
