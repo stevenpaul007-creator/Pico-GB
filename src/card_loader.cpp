@@ -34,10 +34,10 @@ gpio_function_t UseSDPinFunctionScope::sd_mosi_pin_func = GPIO_FUNC_NULL;
 bool init_sdcard_hardware() {
   auto scope = UseSDPinFunctionScope();
 
-  SPI.setMISO(SD_MISO_PIN);
-  SPI.setMOSI(SD_MOSI_PIN);
-  SPI.setSCK(SD_SCK_PIN);
-  bool success = sd.begin(SdSpiConfig(SD_CS_PIN, SHARED_SPI, SD_SCK_MHZ(50), &SPI));
+  SD_SPI.setMISO(SD_MISO_PIN);
+  SD_SPI.setMOSI(SD_MOSI_PIN);
+  SD_SPI.setSCK(SD_SCK_PIN);
+  bool success = sd.begin(SdSpiConfig(SD_CS_PIN, SHARED_SPI, SD_SCK_MHZ(50), &SD_SPI));
   if (success) {
     UseSDPinFunctionScope::init(); 
   }

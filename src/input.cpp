@@ -66,32 +66,32 @@ bool readJoypad(uint8_t pin) {
 #else
 
 static void initJoypadGpios() {
-  gpio_set_function(GPIO_UP, GPIO_FUNC_SIO);
-  gpio_set_function(GPIO_DOWN, GPIO_FUNC_SIO);
-  gpio_set_function(GPIO_LEFT, GPIO_FUNC_SIO);
-  gpio_set_function(GPIO_RIGHT, GPIO_FUNC_SIO);
-  gpio_set_function(GPIO_A, GPIO_FUNC_SIO);
-  gpio_set_function(GPIO_B, GPIO_FUNC_SIO);
-  gpio_set_function(GPIO_SELECT, GPIO_FUNC_SIO);
-  gpio_set_function(GPIO_START, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_UP, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_DOWN, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_LEFT, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_RIGHT, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_A, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_B, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_SELECT, GPIO_FUNC_SIO);
+  gpio_set_function(PIN_START, GPIO_FUNC_SIO);
 
-  gpio_set_dir(GPIO_UP, false);
-  gpio_set_dir(GPIO_DOWN, false);
-  gpio_set_dir(GPIO_LEFT, false);
-  gpio_set_dir(GPIO_RIGHT, false);
-  gpio_set_dir(GPIO_A, false);
-  gpio_set_dir(GPIO_B, false);
-  gpio_set_dir(GPIO_SELECT, false);
-  gpio_set_dir(GPIO_START, false);
+  gpio_set_dir(PIN_UP, false);
+  gpio_set_dir(PIN_DOWN, false);
+  gpio_set_dir(PIN_LEFT, false);
+  gpio_set_dir(PIN_RIGHT, false);
+  gpio_set_dir(PIN_A, false);
+  gpio_set_dir(PIN_B, false);
+  gpio_set_dir(PIN_SELECT, false);
+  gpio_set_dir(PIN_START, false);
 
-  gpio_pull_up(GPIO_UP);
-  gpio_pull_up(GPIO_DOWN);
-  gpio_pull_up(GPIO_LEFT);
-  gpio_pull_up(GPIO_RIGHT);
-  gpio_pull_up(GPIO_A);
-  gpio_pull_up(GPIO_B);
-  gpio_pull_up(GPIO_SELECT);
-  gpio_pull_up(GPIO_START);  
+  gpio_pull_up(PIN_UP);
+  gpio_pull_up(PIN_DOWN);
+  gpio_pull_up(PIN_LEFT);
+  gpio_pull_up(PIN_RIGHT);
+  gpio_pull_up(PIN_A);
+  gpio_pull_up(PIN_B);
+  gpio_pull_up(PIN_SELECT);
+  gpio_pull_up(PIN_START);  
 }
 
 bool readJoypad(uint8_t pin) {
