@@ -7,9 +7,12 @@
 #include <SdFat.h>
 #include "gb.h"
 
+#define INPUT_GPIO 1
+#define INPUT_PCF8574 2
+
 /* Joypad Pins. */
-#define USE_JOYPAD_I2C_IO_EXPANDER
-#ifdef USE_JOYPAD_I2C_IO_EXPANDER
+//#define USE_JOYPAD_I2C_IO_EXPANDER
+#if ENABLE_INPUT == INPUT_PCF8574
 // Use PCF8574 for Joypad. Only required if an LCD with 16-bit parallel bus is used,
 // as Pico does not have enough pins for all peripherals. With 8-bit parallel or SPI LCDs this should not be necessary.
 #define PCF8574_ADDR 0x20
@@ -24,7 +27,7 @@
 #define PIN_B		4
 #define PIN_SELECT	6
 #define PIN_START	7
-#else
+#elif ENABLE_INPUT == INPUT_GPIO
 // Use GPIOs directly on Pico for Joypad
 #define PIN_UP		2
 #define PIN_DOWN	3
