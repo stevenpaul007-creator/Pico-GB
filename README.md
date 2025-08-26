@@ -6,7 +6,21 @@ In addition to YouMakeTech and Deltabeards amazing work, this fork adds some imp
 * scaling modes that can be toggled with `Select` + `B`. Note that no integer scaling is possible on this low resolution screens. The modes are:
   * full height with stretching to screen's width. Some columns/lines are doubled in this mode
   * full height with width scaled to original aspect ratio. Some columns/lines are doubled in this mode
-  * 
+  * original size (160x144 px, no scaling/stretching)
+    <div style="display: flex; flex-direction: row; margin: 2em">
+      <div style="width: 50%; text-align: center;">
+        <div><img src="doc/mode-scaled-aspect.jpg" height="300" alt="Scaled with correct aspect ratio)"></div>
+        <span>Scaled with correct aspect ratio</span>
+      </div>
+      <div style="width: 50%; text-align: center;">
+        <div><img src="doc/mode-stretched.jpg" height="200" alt="Stretched"></div>
+        <span>Stretched</span>
+      </div>
+      <div style="width: 50%; text-align: center;">
+        <div><img src="doc/mode-original.jpg" height="200" alt="Original size (160x144 px, no scaling/stretching)"></div>
+        <span>Original size (160x144 px, no scaling/stretching)</span>
+      </div>
+    </div>
 * gamma correction (value hard-coded but changeable in source-code) for color correction of the used display
 * support for Game Boy Color games, thanks to (froggestspirit's CGB branch of Peanut-GB)[https://github.com/deltabeard/Peanut-GB/tree/cgb] that unfortunately is not merged yet to Peanut-GB main branch
 * migration to [PlatformIO](https://platformio.org/) for easier development and integration of third-party libraries
@@ -18,8 +32,6 @@ It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTec
 * I2S sound support (44.1kHz 16 bits stereo audio)
 * SD card support (store roms and save games) + game selection menu
 * automatic color palette selection for some games (emulation of Game Boy Color Bootstrap ROM) + manual color palette selection
-
-Pico-GB is a [3d-printed Game Boy emulator handheld gaming console for Raspberry Pi Pico](https://www.youmaketech.com/pico-gb-gameboy-emulator-handheld-for-raspberry-pi-pico/) that ressembles to the original Nintendo Game Boy released in 1989.
 
 # Videos by YouMakeTech
 * [Let's build a Game Boy Emulator on a Breadboard!](https://youtu.be/ThmwXpIsGWs)
@@ -46,9 +58,10 @@ Pico-GB is a [3d-printed Game Boy emulator handheld gaming console for Raspberry
 * Dupont Wires Assorted Kit (Male to Female + Male to Male + Female to Female)
 * Preformed Breadboard Jumper Wires
 
-
-## Setting up the hardware
-[Pico-GB assembly instructions, circuit diagrams, 3d printed files etc.](https://www.youmaketech.com/pico-gb-gameboy-emulator-handheld-for-raspberry-pi-pico/)
+Last but not least: you might want a shell.
+* You might like the one from YouMakeTech: [Pico-GB 3d-printed Game Boy emulator handheld gaming console for Raspberry Pi Pico](https://www.youmaketech.com/pico-gb-gameboy-emulator-handheld-for-raspberry-pi-pico/) that ressembles to the original Nintendo Game Boy released in 1989.
+  * See [Pico-GB assembly instructions, circuit diagrams, 3d printed files etc.](https://www.youmaketech.com/pico-gb-gameboy-emulator-handheld-for-raspberry-pi-pico/)
+* Or just build your own like I did (I just modified a cheap retro arcade with "homebrew" games)
 
 # Pinout
 You must select your pinout via the tft-espi-config/tft_setup.h (for the display) and common.h (audio, input, sd-card) files.
