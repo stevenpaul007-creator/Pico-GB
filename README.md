@@ -23,6 +23,9 @@ In addition to YouMakeTech and Deltabeards amazing work, this fork adds some imp
     </div>
 * gamma correction (value hard-coded but changeable in source-code) for color correction of the used display
 * support for Game Boy Color games, thanks to (froggestspirit's CGB branch of Peanut-GB)[https://github.com/deltabeard/Peanut-GB/tree/cgb] that unfortunately is not merged yet to Peanut-GB main branch
+    <div style="width: 50%; text-align: center;">
+      <div><img src="doc/color.jpg" height="200" alt="Color"></div>
+    </div>
 * migration to [PlatformIO](https://platformio.org/) for easier development and integration of third-party libraries
 * support for I2C IO expanders in case you want to use a fast 16-bit LCD display
 
