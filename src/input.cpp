@@ -273,11 +273,17 @@ void handleJoypad() {
 #endif
     if (!gb.direct.joypad_bits.right && prev_joypad_bits.right) {
       /* select + right: select the next manual color palette */
-      nextPalette();
+      //nextPalette();
+      #if ENABLE_SDCARD
+      write_cart_ram_file(&gb);
+      #endif
     }
     if (!gb.direct.joypad_bits.left && prev_joypad_bits.left) {
       /* select + left: select the previous manual color palette */
-      prevPalette();
+      //prevPalette();
+      #if ENABLE_SDCARD
+      read_cart_ram_file(&gb);
+      #endif
     }
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       /* select + start: save ram and resets to the game selection menu */

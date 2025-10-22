@@ -26,13 +26,16 @@
 
 /**
  * return the default i2s context used to store information about the setup
+ * RP2040 的每个 PIO 只能控制自己对应范围的 GPIO。
+ * GP9～GP11 属于 PIO0（默认即可）。
+ * GP26～GP28 属于 PIO1。
  */
 i2s_config_t i2s_get_default_config(void) {
     i2s_config_t i2s_config = {
 		.sample_freq = 44100, 
 		.channel_count = 2,
-		.data_pin = 26,
-		.clock_pin_base = 27,
+		.data_pin = 9,
+		.clock_pin_base = 10,
 		.pio = pio0,
 		.sm = 0,
         .dma_channel = 0,
@@ -49,10 +52,11 @@ i2s_config_t i2s_get_default_config(void) {
  * i2s_config: I2S context obtained by i2s_get_default_config()
  */
 void i2s_init(i2s_config_t *i2s_config) {
-    uint8_t func=GPIO_FUNC_PIO0;    // TODO: GPIO_FUNC_PIO0 for pio0 or GPIO_FUNC_PIO1 for pio1
-    gpio_set_function(i2s_config->data_pin, GPIO_FUNC_PIO0);
-    gpio_set_function(i2s_config->clock_pin_base, GPIO_FUNC_PIO0);
-    gpio_set_function(i2s_config->clock_pin_base+1, GPIO_FUNC_PIO0);
+    // 根据PIO选择正确的GPIO功能
+    gpio_function_t func = (i2s_config->pio == pio0) ? GPIO_FUNC_PIO0 : GPIO_FUNC_PIO1;
+    gpio_set_function(i2s_config->data_pin, func);
+    gpio_set_function(i2s_config->clock_pin_base, func);
+    gpio_set_function(i2s_config->clock_pin_base+1, func);
     
     i2s_config->sm = pio_claim_unused_sm(i2s_config->pio, true);
     

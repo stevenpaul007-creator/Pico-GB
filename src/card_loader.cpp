@@ -24,7 +24,7 @@
 #include "gb.h"
 #include "card_loader.h"
 
-#define RAM_SAVENAME_LENGTH 16
+#define RAM_SAVENAME_LENGTH 16 + 7
 
 SdFs sd;
 
@@ -32,14 +32,14 @@ gpio_function_t UseSDPinFunctionScope::sd_sck_pin_func = GPIO_FUNC_NULL;
 gpio_function_t UseSDPinFunctionScope::sd_mosi_pin_func = GPIO_FUNC_NULL;
 
 bool init_sdcard_hardware() {
-  auto scope = UseSDPinFunctionScope();
+  //auto scope = UseSDPinFunctionScope();
 
   SD_SPI.setMISO(SD_MISO_PIN);
   SD_SPI.setMOSI(SD_MOSI_PIN);
   SD_SPI.setSCK(SD_SCK_PIN);
-  bool success = sd.begin(SdSpiConfig(SD_CS_PIN, SHARED_SPI, SD_SCK_MHZ(50), &SD_SPI));
+  bool success = sd.begin(SdSpiConfig(SD_CS_PIN, DEDICATED_SPI, SD_SCK_MHZ(50), &SD_SPI));
   if (success) {
-    UseSDPinFunctionScope::init(); 
+    //UseSDPinFunctionScope::init(); 
   }
   return success;
 }
@@ -58,14 +58,14 @@ void init_sdcard() {
     error("Can't find a valid FAT16/FAT32/exFAT partition");
   }
   
-  Serial.printf("SD-Card initialized: FAT-Type=%d\n", sd.vol()->fatType());
+  Serial.printf("SD-Card initialized: FAT-Type=%d\r\n", sd.vol()->fatType());
 }
 
 /**
  * Load a save file from the SD card
  */
 void read_cart_ram_file(struct gb_s* gb) {
-  auto scope = UseSDPinFunctionScope();
+  //@REM auto scope = UseSDPinFunctionScope();
 
   char filename[RAM_SAVENAME_LENGTH];
   uint_fast32_t save_size;
@@ -73,26 +73,31 @@ void read_cart_ram_file(struct gb_s* gb) {
 
   gb_get_rom_name(gb, filename);
   save_size = gb_get_save_size(gb);
+  
+  String f = String("SAVES/");
+  f.concat(filename);
+  f.toCharArray(filename,RAM_SAVENAME_LENGTH);
+
   if (save_size > 0) {
     if (!file.open(filename, O_RDONLY)) {
-      Serial.printf("E f_open(%s) error\n", filename);
+      Serial.printf("E f_open(%s) error\r\n", filename);
     } else {
       file.read(ram, file.size());
     }
 
     if (!file.close()) {
-      Serial.printf("E f_close error\n");
+      Serial.printf("E f_close error\r\n");
     }
   }
 
-  Serial.printf("I read_cart_ram_file(%s) COMPLETE (%lu bytes)\n", filename, save_size);
+  Serial.printf("I read_cart_ram_file(%s) COMPLETE (%lu bytes)\r\n", filename, save_size);
 }
 
 /**
  * Write a save file to the SD card
  */
 void write_cart_ram_file(struct gb_s* gb) {
-  auto scope = UseSDPinFunctionScope();
+  //@REM auto scope = UseSDPinFunctionScope();
 
   char filename[RAM_SAVENAME_LENGTH];
   uint_fast32_t save_size;
@@ -100,27 +105,32 @@ void write_cart_ram_file(struct gb_s* gb) {
 
   gb_get_rom_name(gb, filename);
   save_size = gb_get_save_size(gb);
+  
+  String f = String("SAVES/");
+  f.concat(filename);
+  f.toCharArray(filename,RAM_SAVENAME_LENGTH);
+
   if (save_size > 0) {
     if (!file.open(filename, O_WRONLY | O_CREAT)) {
-      Serial.printf("E f_open(%s) error\n", filename);
+      Serial.printf("E f_open(%s) error\r\n", filename);
       return;
     }
 
     file.write(ram, save_size);
     if (!file.close()) {
-      Serial.printf("E f_close error\n");
+      Serial.printf("E f_close error\r\n");
     }
   }
 
-  Serial.printf("I write_cart_ram_file(%s) COMPLETE (%lu bytes)\n", filename, save_size);
+  Serial.printf("I write_cart_ram_file(%s) COMPLETE (%lu bytes)\r\n", filename, save_size);
 }
 
 bool write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint32_t offset) {
-  auto scope = UseSDPinFunctionScope();
+  //@REEMauto scope = UseSDPinFunctionScope();
 
   int nread = file.read(buffer, FLASH_SECTOR_SIZE);
   if (nread < 0) {
-    scope.close();
+    //@REEMscope.close();
     error("Failed to read file!");    
   }
 
@@ -137,7 +147,7 @@ bool write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint32_t offset) {
 
   /* Read back target region and check programming */
   if (memcmp(&rom[offset], buffer, FLASH_SECTOR_SIZE) != 0) {
-    scope.close();
+    //@REEMscope.close();
     error("Programming failed - Flash mismatch");
   }
 
@@ -145,19 +155,19 @@ bool write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint32_t offset) {
 }
 
 static void open_rom_file(FsFile& file, char* filename) {
-  auto scope = UseSDPinFunctionScope();
+  //@REEMauto scope = UseSDPinFunctionScope();
 
   if (!file.open(filename, O_RDONLY)) {
-    scope.close();
+    //@REEMscope.close();
     error("Failed to open ROM: " + String(filename));
   }
 }
 
 static void close_rom_file(FsFile& file) {
-  auto scope = UseSDPinFunctionScope();
+  //@REEMauto scope = UseSDPinFunctionScope();
 
   if (!file.close()) {
-    Serial.printf("E f_close error\n");
+    Serial.printf("E f_close error\r\n");
   }
 }
 
@@ -175,7 +185,7 @@ void load_cart_rom_file(char* filename) {
   FsFile file;
   open_rom_file(file, filename);
 
-  Serial.printf("I Program target region...\n");
+  Serial.printf("I Program target region...\r\n");
 
   uint32_t offset = 0;
   while (write_rom_sector_to_flash(file, buffer, offset)) {
@@ -187,11 +197,11 @@ void load_cart_rom_file(char* filename) {
 
   close_rom_file(file);
 
-  Serial.printf("I load_cart_rom_file(%s) COMPLETE\n", filename);
+  Serial.printf("I load_cart_rom_file(%s) COMPLETE\r\n", filename);
 }
 
 static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_LENGTH], uint16_t num_page) {
-  auto scope = UseSDPinFunctionScope();
+  //@REEMauto scope = UseSDPinFunctionScope();
 
   FsFile dir;
   FsFile file;
@@ -202,7 +212,7 @@ static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_
   }
 
   if (!dir.open("/")) {
-    scope.close();
+    //@REEMscope.close();
     error("Failed to open root dir");
   }
 
@@ -275,9 +285,14 @@ void rom_file_selector() {
   uint16_t num_page = 0;
   char filename[FILES_PER_PAGE][MAX_PATH_LENGTH];
   uint16_t num_files;
+  uint16_t total_pages = 1;
 
   /* display the first page with up to FILES_PER_PAGE rom files */
   num_files = rom_file_selector_display_page(filename, num_page);
+  total_pages = num_files / FILES_PER_PAGE;
+  if(num_files % FILES_PER_PAGE == 0){
+    total_pages -= 1;
+  }
 
   /* select the first rom */
   uint8_t selected = 0;
@@ -324,6 +339,11 @@ void rom_file_selector() {
       sleep_ms(150);
     }
     if (!right) {
+      // is last page do nothing
+      if(num_page >= total_pages){
+        continue;
+      }
+
       /* select the next page */
       num_page++;
       num_files = rom_file_selector_display_page(filename, num_page);

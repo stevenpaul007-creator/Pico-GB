@@ -9,6 +9,8 @@
 
 #define INPUT_GPIO 1
 #define INPUT_PCF8574 2
+#define ENABLE_INPUT 1
+
 
 /* Joypad Pins. */
 //#define USE_JOYPAD_I2C_IO_EXPANDER
@@ -29,27 +31,28 @@
 #define PIN_START	7
 #elif ENABLE_INPUT == INPUT_GPIO
 // Use GPIOs directly on Pico for Joypad
-#define PIN_UP		2
-#define PIN_DOWN	3
-#define PIN_LEFT	4
-#define PIN_RIGHT	5
-#define PIN_A		6
-#define PIN_B		7
-#define PIN_SELECT	8
-#define PIN_START	9
+#define PIN_UP		 17
+#define PIN_DOWN	 19
+#define PIN_LEFT	 16
+#define PIN_RIGHT	 18
+#define PIN_A		   21
+#define PIN_B		   20
+#define PIN_SELECT 22
+#define PIN_START	 26
 #endif
 
 #if ENABLE_SOUND
-#define I2S_DIN_PIN 26
-#define I2S_BCLK_LRC_PIN_BASE 27  // BCLK + LRC (28)
+#define I2S_DIN_PIN 9
+#define I2S_BCLK_LRC_PIN_BASE 10
+// LRC = 11
 #endif
 
 #if ENABLE_SDCARD
-#define SD_SPI SPI
-#define SD_CS_PIN 17
-#define SD_SCK_PIN 18
-#define SD_MOSI_PIN 19
-#define SD_MISO_PIN 16
+#define SD_SPI SPI1
+#define SD_CS_PIN   13  //17
+#define SD_SCK_PIN  14  //18
+#define SD_MOSI_PIN 15  //19
+#define SD_MISO_PIN 12  //16
 
 extern uint8_t _FS_start;
 extern uint8_t _FS_end;

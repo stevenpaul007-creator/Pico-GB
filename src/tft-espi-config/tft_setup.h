@@ -22,11 +22,11 @@
 
 // Tell the library to use parallel mode (otherwise SPI is assumed)
 //#define TFT_PARALLEL_8_BIT
-#define TFT_PARALLEL_16_BIT // **** 16-bit parallel ONLY for RP2040 processor ****
+//#define TFT_PARALLEL_16_BIT // **** 16-bit parallel ONLY for RP2040 processor ****
 
 // Only define one driver, the other ones must be commented out
-#define ILI9341_DRIVER       // Generic driver for common displays
-//#define ILI9341_2_DRIVER     // Alternative ILI9341 driver, see https://github.com/Bodmer/TFT_eSPI/issues/1172
+//#define ILI9341_DRIVER       // Generic driver for common displays
+#define ILI9341_2_DRIVER     // Alternative ILI9341 driver, see https://github.com/Bodmer/TFT_eSPI/issues/1172
 //#define ST7735_DRIVER      // Define additional parameters below for this display
 //#define ILI9163_DRIVER     // Define additional parameters below for this display
 //#define S6D02A1_DRIVER
@@ -102,6 +102,14 @@
 
 // #define TFT_BL   32            // LED back-light control pin
 // #define TFT_BACKLIGHT_ON HIGH  // Level to turn ON back-light (HIGH or LOW)
+// ==== SPI 接口定义 ====
+#define TFT_MOSI  3     // LCD SDI
+#define TFT_SCLK  2     // LCD CLK
+#define TFT_CS    4     // LCD CS
+#define TFT_DC    7     // LCD RS (Data/Command)
+#define TFT_RST   8     // LCD RST
+
+#ifdef TFT_PARALLEL_16_BIT
 
 #define TFT_D0    0
 #define TFT_D1    1
@@ -116,6 +124,8 @@
 #define TFT_CS    22      // Chip select control pin D8
 //#define TFT_RST   22      // Reset pin (could connect to NodeMCU RST, see next line)
 #define TFT_RST  -1     // Set TFT_RST to -1 if the display RESET is connected to NodeMCU RST or 3.3V
+
+#endif
 
 // ##################################################################################
 //
@@ -152,6 +162,11 @@
 // For RP2040 processor and SPI displays, uncomment the following line to use the PIO interface.
 //#define RP2040_PIO_SPI // Leave commented out to use standard RP2040 SPI port interface
 
+// RP2040 DMA优化配置 - 双缓冲DMA通道分配
+#define RP2040_DMA_CHANNEL_0 0   // 主DMA通道
+#define RP2040_DMA_CHANNEL_1 1   // 备用DMA通道
+#define RP2040_DMA_PRIORITY 0    // 最高优先级
+
 // For RP2040 processor and 8 or 16-bit parallel displays:
 // The parallel interface write cycle period is derived from a division of the CPU clock
 // speed so scales with the processor clock. This means that the divider ratio may need
@@ -167,7 +182,7 @@
 //#define RP2040_PIO_CLK_DIV 3 // 96ns write cycle at 125MHz CPU clock
 
 #define RP2040_PIO_CLK_DIV 4 // ~60ns write cycle at 250MHz CPU clock
-
+#define TFT_SPI_PORT 0
 // For the RP2040 processor define the SPI port channel used (default 0 if undefined)
 //#define TFT_SPI_PORT 1 // Set to 0 if SPI0 pins are used, or 1 if spi1 pins used
 
@@ -184,10 +199,11 @@
 // #define SPI_FREQUENCY   5000000
 // #define SPI_FREQUENCY  10000000
 // #define SPI_FREQUENCY  20000000
-#define SPI_FREQUENCY  27000000
-// #define SPI_FREQUENCY  40000000
+// #define SPI_FREQUENCY  27000000
+//#define SPI_FREQUENCY  40000000
+//#define SPI_FREQUENCY  62500000
 // #define SPI_FREQUENCY  55000000 // STM32 SPI1 only (SPI2 maximum is 27MHz)
-// #define SPI_FREQUENCY  80000000
+#define SPI_FREQUENCY  80000000  // 提高SPI频率到80MHz，RP2350支持更高频率
 
 // Optional reduced SPI frequency for reading TFT
 #define SPI_READ_FREQUENCY  20000000

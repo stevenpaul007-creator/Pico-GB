@@ -76,8 +76,7 @@ void lcd_init(bool isCore1) {
   // horizontal update lines. Even better would be VSync or TE line handling (which is not present in most cheap displays)
   rotate = !isCore1; // rotate in start menu but not in-game 
 #endif
-  tft.setRotation(rotate ? 1 : 0);
-
+  tft.setRotation(rotate ? 3 : 2);
   tft.fillScreen(TFT_BLACK);
 }
 
@@ -116,7 +115,10 @@ void lcd_pushLine(uint16_t screenColOffset, uint16_t screenLineOffset, uint16_t 
 void lcd_pushLine(uint16_t screenColOffset, uint16_t screenLineOffset, uint16_t line, const uint16_t* pixels, uint_fast16_t width) {
   tft.setAddrWindow(screenColOffset, screenLineOffset + line, width, 1);
 #if ENABLE_LCD_DMA
-  tft.dmaWait();
+  // 只在必要时等待DMA完成，避免不必要的阻塞
+  if (tft.dmaBusy()) {
+    tft.dmaWait();
+  }
   memcpy(linebuffer, pixels, width * sizeof(uint16_t));
   tft.setSwapBytes(true);
   tft.startWrite(); // manual start required as DMA transfer is asynchronous
@@ -203,10 +205,15 @@ void lcd_write_framebuffer_to_screen() {
   uint16_t* framebuffer = framebuffers[activeFramebufferId];
   tft.setSwapBytes(true);
 #if ENABLE_LCD_DMA
+  //优化双缓冲策略：检查DMA状态，避免阻塞
+  if (tft.dmaBusy()) {
+    // DMA忙碌时，跳过这一帧，避免阻塞
+    return;
+  }
+  lcd_swap_buffers();
   tft.startWrite(); // manual start required as DMA transfer is asynchronous
   tft.pushImageDMA(0, 0, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT, framebuffer);
   //tft.endWrite(); // do not call endWrite(), as it will wait for the DMA transfer to finish, which results in no performance gain
-  lcd_swap_buffers();
 #else
   tft.pushImage(0, 0, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT, framebuffer);
 #endif

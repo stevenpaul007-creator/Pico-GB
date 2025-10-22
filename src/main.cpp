@@ -85,8 +85,8 @@ void startEmulator() {
 #endif
 
 #if ENABLE_SDCARD
-  //Serial.println("Load save file ...");
-  //read_cart_ram_file(&gb);
+  Serial.println("Load save file ...");
+  read_cart_ram_file(&gb);
 #endif
 
   Serial.print("\n> ");
@@ -130,12 +130,22 @@ void initSound() {
   i2s_config.sample_freq = AUDIO_SAMPLE_RATE;
   i2s_config.dma_trans_count = AUDIO_SAMPLES;
   i2s_config.data_pin = I2S_DIN_PIN,
-	i2s_config.clock_pin_base = I2S_BCLK_LRC_PIN_BASE,
-  i2s_volume(&i2s_config, 2);
+	i2s_config.clock_pin_base = I2S_BCLK_LRC_PIN_BASE;
+  // 尝试使用PIO1，如果失败则使用PIO2
+  i2s_config.pio = pio1;  // 使用PIO1专门处理I2S，避免与TFT_eSPI的PIO0冲突
+  Serial.printf("Using PIO%d for I2S\n", (i2s_config.pio == pio0) ? 0 : 
+                                          (i2s_config.pio == pio1) ? 1 : 2);
+  i2s_volume(&i2s_config, 15);
   i2s_init(&i2s_config);
 
   Serial.println("Sound initialized");
 #endif
+}
+
+void checkUpdate(){
+  if(readJoypad(PIN_SELECT) == 0){
+    rp2040.rebootToBootloader();
+  }
 }
 
 void setup() {
@@ -158,6 +168,9 @@ void setup() {
 #endif
   
   initJoypad();
+
+  //check select button press to dfu mode
+  checkUpdate();
 
   initSound();
 
