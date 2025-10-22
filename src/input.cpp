@@ -287,9 +287,9 @@ void handleJoypad() {
     }
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       /* select + start: save ram and resets to the game selection menu */
-#if ENABLE_SDCARD
-      write_cart_ram_file(&gb);
-#endif
+// #if ENABLE_SDCARD
+//       write_cart_ram_file(&gb);
+// #endif
       reset();
     }
     if (!gb.direct.joypad_bits.a && prev_joypad_bits.a) {

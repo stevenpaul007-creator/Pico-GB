@@ -6,6 +6,9 @@
 #include "gbcolors.h"
 #include "gb.h"
 #include "common.h"
+#if ENABLE_PSRAM
+#include "psram.h"
+#endif
 
 struct gb_s gb;
 palette_t palette; // Colour palette
@@ -23,18 +26,26 @@ const uint8_t *rom = GAME_DATA;
  * Game Boy DMG ROM size ranges from 32768 bytes (e.g. Tetris) to 1,048,576 bytes (e.g. Pokemod Red)
  */
 const uint8_t *rom = (const uint8_t *)(&_FS_start);
+uint32_t rom_size_bytes = 0;
 #endif
 
-static unsigned char rom_bank0[65536];
+static unsigned char rom_bank0[1024*100];
 
 /**
  * Returns a byte from the ROM file at the given address.
  */
 static uint8_t gb_rom_read(struct gb_s* gb, const uint_fast32_t addr) {
   (void)gb;
+  
   if (addr < sizeof(rom_bank0))
     return rom_bank0[addr];
 
+#if ENABLE_PSRAM
+  // If PSRAM is enabled and rom was loaded into PSRAM, read from PSRAM
+  if (rom_size_bytes > 0 && addr < rom_size_bytes) {
+    return psram_read8(addr);
+  }
+#endif
   return rom[addr];
 }
 
@@ -76,7 +87,14 @@ static uint8_t gb_bootrom_read(struct gb_s* gb, const uint_fast16_t addr) {
 #endif
 
 void initGbContext() {
+#if ENABLE_PSRAM
+  for(int i=0; i<sizeof(rom_bank0); i++) {
+    rom_bank0[i] = psram_read8(i);
+  }
   memcpy(rom_bank0, rom, sizeof(rom_bank0));
+#else
+  memcpy(rom_bank0, rom, sizeof(rom_bank0));
+#endif
 
   auto ret = gb_init(&gb, &gb_rom_read, &gb_cart_ram_read, &gb_cart_ram_write, &gb_error, NULL);
   if (ret != GB_INIT_NO_ERROR) {

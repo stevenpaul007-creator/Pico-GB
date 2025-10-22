@@ -24,6 +24,11 @@
 #include "gb.h"
 #include "card_loader.h"
 
+#if ENABLE_PSRAM
+#include "psram.h"
+#include "gb.h"
+#endif
+
 #define RAM_SAVENAME_LENGTH 16 + 7
 
 SdFs sd;
@@ -37,7 +42,7 @@ bool init_sdcard_hardware() {
   SD_SPI.setMISO(SD_MISO_PIN);
   SD_SPI.setMOSI(SD_MOSI_PIN);
   SD_SPI.setSCK(SD_SCK_PIN);
-  bool success = sd.begin(SdSpiConfig(SD_CS_PIN, DEDICATED_SPI, SD_SCK_MHZ(50), &SD_SPI));
+  bool success = sd.begin(SdSpiConfig(SD_CS_PIN, SHARED_SPI, SD_SCK_MHZ(50), &SD_SPI));
   if (success) {
     //UseSDPinFunctionScope::init(); 
   }
@@ -170,7 +175,43 @@ static void close_rom_file(FsFile& file) {
     Serial.printf("E f_close error\r\n");
   }
 }
+#if ENABLE_PSRAM
+/**
+ * Load a .gb rom file in PSRAM from the SD card
+ */
+void load_cart_rom_file_to_PSRAM(char* filename) {
 
+  tft.fillScreen(TFT_BLACK);
+  tft.setCursor(0, 0, FONT_ID);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.println("Loading ROM: ");
+
+  FsFile file;
+  Serial.printf("psram: opening file '%s'\r\n", filename);
+  open_rom_file(file, filename);
+  Serial.println("psram: file opened");
+
+  if (!psram_init()) {
+    error("PSRAM init failed");
+  } else {
+    uint32_t written = 0;
+    bool ok = load_rom_to_psram(file, written);
+    Serial.printf("psram: load_rom_to_psram returned %s, written=%lu\r\n", ok ? "true" : "false", written);
+    if (ok && written > 0) {
+      // inform gb about rom size so reads use PSRAM
+      rom_size_bytes = written;
+      Serial.printf("I Loaded ROM to PSRAM (%lu bytes)\r\n", written);
+    } else if (ok && written == 0) {
+      Serial.println("psram: loader succeeded but wrote 0 bytes");
+      error("PSRAM load produced 0 bytes");
+    } else {
+      error("Failed to load ROM to PSRAM");
+    }
+  }
+  close_rom_file(file);
+  Serial.printf("I load_cart_rom_file_to_PSRAM(%s) COMPLETE\r\n", filename);
+}
+#else
 /**
  * Load a .gb rom file in flash from the SD card
  */
@@ -199,6 +240,8 @@ void load_cart_rom_file(char* filename) {
 
   Serial.printf("I load_cart_rom_file(%s) COMPLETE\r\n", filename);
 }
+
+#endif
 
 static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_LENGTH], uint16_t num_page) {
   //@REEMauto scope = UseSDPinFunctionScope();
@@ -311,11 +354,18 @@ void rom_file_selector() {
     start = readJoypad(PIN_START);
     if (!start) {
       /* re-start the last game (no need to reprogram flash) */
+#if ENABLE_PSRAM
+      load_cart_rom_file_to_PSRAM(filename[selected]);
+#endif
       break;
     }
     if (!a | !b) {
-      /* copy the rom from the SD card to flash and start the game */
+      /* copy the rom from the SD card to flash or PSRAM and start the game */
+#if ENABLE_PSRAM
+      load_cart_rom_file_to_PSRAM(filename[selected]);
+#else
       load_cart_rom_file(filename[selected]);
+#endif
       break;
     }
     if (!down) {
@@ -325,7 +375,7 @@ void rom_file_selector() {
       if (selected >= num_files)
         selected = 0;
       print_file_entry(filename[selected], selected, num_files, true);
-      sleep_ms(150);
+      sleep_ms(200);
     }
     if (!up) {
       /* select the previous rom */
@@ -336,7 +386,7 @@ void rom_file_selector() {
         selected--;
       }
       print_file_entry(filename[selected], selected, num_files, true);
-      sleep_ms(150);
+      sleep_ms(200);
     }
     if (!right) {
       // is last page do nothing
@@ -355,7 +405,7 @@ void rom_file_selector() {
       /* select the first file */
       selected = 0;
       print_file_entry(filename[selected], selected, num_files, true);
-      sleep_ms(150);
+      sleep_ms(200);
     }
     if ((!left) && num_page > 0) {
       /* select the previous page */
@@ -364,7 +414,7 @@ void rom_file_selector() {
       /* select the first file */
       selected = 0;
       print_file_entry(filename[selected], selected, num_files, true);
-      sleep_ms(150);
+      sleep_ms(200);
     }
     tight_loop_contents();
   }

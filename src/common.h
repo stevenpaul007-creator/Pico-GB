@@ -10,6 +10,7 @@
 #define INPUT_GPIO 1
 #define INPUT_PCF8574 2
 #define ENABLE_INPUT 1
+#define ENABLE_PSRAM 1
 
 
 /* Joypad Pins. */
@@ -58,6 +59,16 @@ extern uint8_t _FS_start;
 extern uint8_t _FS_end;
 #define MAX_ROM_SIZE (&_FS_end - &_FS_start)
 #endif
+
+
+#if ENABLE_PSRAM
+#define PSRAM_SPI SPI1
+#define PSRAM_CS_PIN   6
+#define PSRAM_SCK_PIN  14
+#define PSRAM_MOSI_PIN 15
+#define PSRAM_MISO_PIN 12
+#endif
+
 
 // display is rotated, so TFT_WIDTH/HEIGHT cannot be used
 #define DISPLAY_WIDTH TFT_HEIGHT
