@@ -74,9 +74,10 @@ extern uint8_t _FS_end;
 #define DISPLAY_WIDTH TFT_HEIGHT
 #define DISPLAY_HEIGHT TFT_WIDTH
 
-#define FONT_HEIGHT 8
+#define FILES_PER_PAGE 11
+#define FONT_HEIGHT 16
 #define ERROR_TEXT_OFFSET FONT_HEIGHT
-#define FONT_ID 1
+#define FONT_ID 2
 
 enum class ScalingMode {
   NORMAL = 0,

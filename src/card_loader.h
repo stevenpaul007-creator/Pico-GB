@@ -5,7 +5,6 @@
 
 #include "common.h"
 
-#define FILES_PER_PAGE 22
 #define MAX_PATH_LENGTH 256
 
 extern SdFs sd;

@@ -88,10 +88,7 @@ static uint8_t gb_bootrom_read(struct gb_s* gb, const uint_fast16_t addr) {
 
 void initGbContext() {
 #if ENABLE_PSRAM
-  for(int i=0; i<sizeof(rom_bank0); i++) {
-    rom_bank0[i] = psram_read8(i);
-  }
-  memcpy(rom_bank0, rom, sizeof(rom_bank0));
+  psram_read(0, rom_bank0, sizeof(rom_bank0));
 #else
   memcpy(rom_bank0, rom, sizeof(rom_bank0));
 #endif

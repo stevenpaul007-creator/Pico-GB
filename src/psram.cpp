@@ -8,7 +8,7 @@ static const uint8_t PSRAM_CMD_FAST_READ = 0x0B; // fast read with 1 dummy byte
 static const uint8_t PSRAM_CMD_WRITE = 0x02;     // write
 
 // Reasonable defaults
-static const SPISettings psramSPISettings(60000000, MSBFIRST, SPI_MODE0);
+static const SPISettings psramSPISettings(80000000, MSBFIRST, SPI_MODE0);
 static const size_t TRANSFER_CHUNK = 4096;
 static const uint32_t DEFAULT_PSRAM_SIZE = 8 * 1024 * 1024; // 8MB for APS6404
 
