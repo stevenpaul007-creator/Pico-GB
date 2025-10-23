@@ -135,7 +135,7 @@ void initSound() {
   i2s_config.pio = pio1;  // 使用PIO1专门处理I2S，避免与TFT_eSPI的PIO0冲突
   Serial.printf("Using PIO%d for I2S\n", (i2s_config.pio == pio0) ? 0 : 
                                           (i2s_config.pio == pio1) ? 1 : 2);
-  i2s_volume(&i2s_config, 15);
+  i2s_volume(&i2s_config, 8);
   i2s_init(&i2s_config);
 
   Serial.println("Sound initialized");

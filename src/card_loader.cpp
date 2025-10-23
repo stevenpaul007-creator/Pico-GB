@@ -271,12 +271,14 @@ static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_
     if (!currentFilenameStr.endsWith(".gb") && !currentFilenameStr.endsWith(".gbc")) {
       continue;
     }
+    Serial.printf("I Found file: (%s)\r\n", currentFilenameStr);
 
     if (num_files < num_file_offset) {
       // skip the first N pages
     } else {
       // store the filenames of this page
-      strcpy(filename[num_files], currentFilename);
+      strcpy(filename[num_files%FILES_PER_PAGE], currentFilename);
+      Serial.printf("I Copy file %02d Name: (%s)\r\n", num_files%FILES_PER_PAGE, currentFilenameStr);
     }
 
     num_files++;
@@ -288,8 +290,13 @@ static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_
   }
 
   dir.close();
-
-  return num_files;
+  if (num_files == 0){
+    return 0;
+  }
+  if (num_files % FILES_PER_PAGE == 0){
+    return FILES_PER_PAGE;
+  }
+  return num_files%FILES_PER_PAGE;
 }
 
 
@@ -332,10 +339,6 @@ void rom_file_selector() {
 
   /* display the first page with up to FILES_PER_PAGE rom files */
   num_files = rom_file_selector_display_page(filename, num_page);
-  total_pages = num_files / FILES_PER_PAGE;
-  if(num_files % FILES_PER_PAGE == 0){
-    total_pages -= 1;
-  }
 
   /* select the first rom */
   uint8_t selected = 0;
@@ -389,12 +392,11 @@ void rom_file_selector() {
       sleep_ms(200);
     }
     if (!right) {
-      // is last page do nothing
-      if(num_page >= total_pages){
+      /* select the next page */
+      if(num_files < FILES_PER_PAGE) {
+        /* no more pages */
         continue;
       }
-
-      /* select the next page */
       num_page++;
       num_files = rom_file_selector_display_page(filename, num_page);
       if (num_files == 0) {
