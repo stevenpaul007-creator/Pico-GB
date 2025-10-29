@@ -35,6 +35,7 @@ It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTec
 * I2S sound support (44.1kHz 16 bits stereo audio)
 * SD card support (store roms and save games) + game selection menu
 * automatic color palette selection for some games (emulation of Game Boy Color Bootstrap ROM) + manual color palette selection
+* PSRAM (APS6404L) is supported if your flash is smaller than your rom
 
 # Videos by YouMakeTech
 * [Let's build a Game Boy Emulator on a Breadboard!](https://youtu.be/ThmwXpIsGWs)
@@ -50,7 +51,7 @@ It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTec
   * smaller LCDs like the 176x220 one used in YouMakeTech's original project also work, but I did not implement any scaling for it
   * larger ones like 480x320 screens should also work. They might be interesting as they allow integer scaling (2x native resolution: 320x288 pixels). No scaling mode was implemented for this so far.
     * Do yourself a favor and do not use one with an SPI controller as the framerate might be really low. I tried a 3.5" SPI one that was designed for the Raspberry Pi and only got 20 FSP out of it.
-    * 8-bit or 16-bit parallel should be fine and should easily give 60fps (probably 100 FPS without audio enabled).
+    * spi with dma should be fine and should easily give 60fps.
 * (1x) SD card reader, like [this one](https://www.androegg.de/shop/esp8266-stm-32-arduino-spi-kartenleser-33v/) - if the LCD board does not already have one built in
 * (1x) FAT 32 formatted Micro SD card with roms you legally own. Roms must have the .gb or .gbc extension and must be copied to the root folder.
 * (1x) MAX98357A amplifier
@@ -60,6 +61,7 @@ It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTec
 * (1x) PCB or Breadboard
 * Dupont Wires Assorted Kit (Male to Female + Male to Male + Female to Female)
 * Preformed Breadboard Jumper Wires
+* (optional) A APS6404L is required if your flash is smaller than your rom file. Like my Pico 2 with a 2MB flash, I could only load a rom within 1MB. If you would linke to load a bigger rom, you can add a APS6404 to SD card IOs with another CS pin. And modify ENABLE_PSRAM to 1, MAX_ROM_SIZE_MB to what ever depends on your flash size(1.5mb is default for 2mb).
 
 Last but not least: you might want a shell.
 * You might like the one from YouMakeTech: [Pico-GB 3d-printed Game Boy emulator handheld gaming console for Raspberry Pi Pico](https://www.youmaketech.com/pico-gb-gameboy-emulator-handheld-for-raspberry-pi-pico/) that ressembles to the original Nintendo Game Boy released in 1989.
@@ -70,26 +72,40 @@ Last but not least: you might want a shell.
 You must select your pinout via the tft-espi-config/tft_setup.h (for the display) and common.h (audio, input, sd-card) files.
 For my 16-bit display with IO expander I use the following pins:
 
-* I2C IO Expander (PCF8574)
-  * SDA = 20
-  * SCL = 21
+* I2C IO Expander (PCF8574), NOT TESTED
+  * SDA = NC
+  * SCL = NC
   * UP / DOWN / LEFT / RIGHT / BUTTON A + B / SELECT / START = I2C IO Expander pins 0-7
-* SD:
-  * CS = GP17
-  * CSK = GP18 (shared with LCD WR)
-  * MOSI = GP19 (shared with LCD DC/RS)
-  * MISO = GP16
-* LCD (16-bit parallel)
-  * D0-D15 = GP0 - GP15
-  * CS = GP22
-  * DC/RS = GP19 (shared with SD MOSI)
-  * WR = GP18 (shared with SD CSK)
-  * RST = not connected, pull high to 3.3V instead
+* Buttons
+  * UP = GP17
+  * DOWN = GP19
+  * LEFT = GP16
+  * RIGHT = GP18
+  * A = GP21
+  * B = GP20
+  * SELECT = GP22
+  * START = GP26
+* SD, using SPI1
+  * CS = GP13
+  * CSK = GP14
+  * MOSI = GP15
+  * MISO = GP12
+* PSRAM,(APS6404L), using SPI1
+  * CS = GP6
+  * CSK = GP14
+  * MOSI = GP15
+  * MISO = GP12
+* LCD, using SPI0
+  * SCLK = GP2
+  * MOSI = GP3
+  * CS = GP4
+  * DC/RS = GP7
+  * RST = GP8
   * LED = not connected, connect to 3.3V instead (could be connected to GP25 for PWM, but not implemented yet)
-* I2S Audio (MAX98357A)
-  * DIN = GP26
-  * BCLK = GP27
-  * LRC = GP28
+* I2S Audio (MAX98357A), using PIO, by the way.
+  * DIN = GP9
+  * BCLK = GP10
+  * LRC = GP11
 
 As there is no pin left, reading the Display for VSYNC is not possible, so screen tearing might occur.
 An 8-bit parallel LCD might be better suited for this project.
@@ -103,7 +119,7 @@ PlatformIO is required to build this project. It can be installed as an extensio
 When PlatformIO is installed, just open the project in Visual Studio Code. It should be detected as a PlatformIO project. Now select the "pico2" environment. Then build and flash it.
 
 # Preparing the SD card
-The SD card is used to store game roms and save game progress. For this project, you will need a FAT 32 formatted Micro SD card with roms you legally own. Roms must have the .gb extension.
+The SD card is used to store game roms and save game progress. For this project, you will need a FAT 32 formatted Micro SD card with roms you legally own. Roms must have the .gb/.gbc extension.
 
 * Insert your SD card in a Windows computer and format it as FAT 32
 * Copy your .gb and/or .gbc files to the SD card root folder (subfolders are not supported at this time)
@@ -116,6 +132,15 @@ The SD card is used to store game roms and save game progress. For this project,
 * Repeatedly flashing your Pico will eventually wear out the flash memory (Pico is qualified for min. 100K flash/erase cycles)
 * The emulator overclocks the Pico in order to get the emulator working fast enough. Overclocking can reduce the Pico’s lifespan.
 * Use this software and instructions at your own risk! I will not be responsible in any way for any damage to your Pico and/or connected peripherals caused by using this software. I also do not take responsibility in any way when damage is caused to the Pico or display due to incorrect wiring or voltages.
+
+# In-game key combos
+* select + up = volume up
+* select + down = volume down
+* select + left = load ram
+* select + right = save ram (to /SAVES/)
+* select + start = restart
+* select + B = screen scale mode
+* select + A = frame skip mode and turn off sound
 
 # License
 MIT
