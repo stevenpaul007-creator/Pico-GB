@@ -1,4 +1,4 @@
-            - name: PlatformIO Run
+  - name: PlatformIO Run
   # You may pin to the exact commit or the version.
   # uses: karniv00l/platformio-run-action@e6467e68a40b381568bad448faf0a1413c72fc7f
   uses: karniv00l/platformio-run-action@v1.1.2
