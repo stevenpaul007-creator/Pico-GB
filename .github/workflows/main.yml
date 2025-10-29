@@ -14,6 +14,14 @@ jobs:
             ~/.cache/pip
             ~/.platformio/.cache
           key: ${{ runner.os }}-pio
+      - name: Tag new version
+        id: tag_version
+        uses: telia-actions/github-increment-version-action@v1
+        with:
+          default_bump: 'patch' # You can change this to 'minor' or 'major'
+          release_branches: 'master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -22,6 +30,8 @@ jobs:
 
       - name: Build PlatformIO Project
         run: pio run --environment pico2 
+      - name: Rename UF2 file
+        run: mv .pio/build/pico2/firmware.uf2 .pio/build/pico2/pico2-gb.uf2
 
       - name: Get UF2 file path
         id: get_uf2_file
@@ -36,11 +46,11 @@ jobs:
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.tag_version.outputs.tag
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          tag: ${{ steps.tag_version.outputs.tag }}
+          name: Release ${{ steps.tag_version.outputs.tag }}
+          body: New patch release triggered by push.
 
       - name: Upload UF2 to Release
         uses: actions/upload-release-asset@v1
