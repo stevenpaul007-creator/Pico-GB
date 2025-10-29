@@ -43,21 +43,22 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
+        if: steps.version_increment.outputs.version
         uses: actions/create-release@v1
+        with:
+          tag_name: v${{ steps.version_increment.outputs.version }}
+          release_name: Release v${{ steps.version_increment.outputs.version }}
+          body: New patch release triggered by push.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: steps.tag_version.outputs.tag
-        with:
-          tag: ${{ steps.tag_version.outputs.tag }}
-          name: Release ${{ steps.tag_version.outputs.tag }}
-          body: New patch release triggered by push.
 
       - name: Upload UF2 to Release
+        if: steps.create_release.outputs.upload_url
         uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.get_uf2_file.outputs.uf2_path }}
-          asset_name: firmware.uf2
+          asset_path: .pio/build/pico2/pico2-gb.uf2
+          asset_name: pico2-gb-v${{ steps.version_increment.outputs.version }}.uf2
           asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
