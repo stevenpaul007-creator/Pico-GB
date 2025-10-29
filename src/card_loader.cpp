@@ -176,6 +176,76 @@ static void close_rom_file(FsFile& file) {
   }
 }
 #if ENABLE_PSRAM
+void load_cart_rom_file_to_rom_and_PSRAM(char* filename) {
+  tft.fillScreen(TFT_BLACK);
+  tft.setCursor(0, 0, FONT_ID);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.println("Loading ROM: ");
+  
+  uint8_t buffer[FLASH_SECTOR_SIZE];
+
+  FsFile file;
+  Serial.printf("psram: opening file '%s'\r\n", filename);
+  open_rom_file(file, filename);
+
+  uint32_t fileSize = file.size();
+  Serial.printf("psram: file opened, size = %lu\r\n", fileSize);
+
+  
+  Serial.printf("I Program target region...\r\n");
+
+  uint32_t offset = 0;
+  bool in_psram_section = false;
+
+  while (true) {
+    tft.print("#");
+    
+    // Check if we've crossed into PSRAM section
+    if (!in_psram_section && offset >= MAX_ROM_SIZE_MB) {
+      Serial.println("\nSwitching to PSRAM section");
+      in_psram_section = true;
+    }
+    if (offset >= fileSize) {
+      Serial.println("\nReached end of file");
+      break;
+    }
+
+    // write to flash
+    if (!in_psram_section)
+    { 
+      // Use the working write_rom_sector_to_flash function
+      if (!write_rom_sector_to_flash(file, buffer, offset)) {
+        error("Flash programming failed");
+      }
+    }else{
+      // write to PSRAM
+      if (!psram_init()) {
+        error("PSRAM init failed");
+      } else {
+        int nread = file.read(buffer, FLASH_SECTOR_SIZE);
+        if (nread < 0) {
+          error("Failed to read file!");    
+        }
+        if (nread == 0) {
+          break;
+        }
+
+        if (!psram_write(offset, buffer, (size_t)nread)) {
+          Serial.println("psram: psram_write failed");
+          return;
+        }
+      }
+    }
+    /* Next sector */
+    offset += FLASH_SECTOR_SIZE;
+  }  
+
+
+  Serial.printf("I load_cart_rom_file(%s) COMPLETE\r\n", filename);
+  close_rom_file(file);
+
+
+}
 /**
  * Load a .gb rom file in PSRAM from the SD card
  */
@@ -199,7 +269,6 @@ void load_cart_rom_file_to_PSRAM(char* filename) {
     Serial.printf("psram: load_rom_to_psram returned %s, written=%lu\r\n", ok ? "true" : "false", written);
     if (ok && written > 0) {
       // inform gb about rom size so reads use PSRAM
-      rom_size_bytes = written;
       Serial.printf("I Loaded ROM to PSRAM (%lu bytes)\r\n", written);
     } else if (ok && written == 0) {
       Serial.println("psram: loader succeeded but wrote 0 bytes");
@@ -234,6 +303,13 @@ void load_cart_rom_file(char* filename) {
 
     /* Next sector */
     offset += FLASH_SECTOR_SIZE;
+    if (offset >= MAX_ROM_SIZE)
+    {
+      Serial.printf("I MAX_ROM_SIZE = (%d)\r\n", MAX_ROM_SIZE);
+      Serial.printf("I offset = (%d)\r\n", offset);
+      break;
+    }
+    
   }
 
   close_rom_file(file);
@@ -358,14 +434,15 @@ void rom_file_selector() {
     if (!start) {
       /* re-start the last game (no need to reprogram flash) */
 #if ENABLE_PSRAM
-      load_cart_rom_file_to_PSRAM(filename[selected]);
+      load_cart_rom_file_to_rom_and_PSRAM(filename[selected]);
 #endif
       break;
     }
     if (!a | !b) {
       /* copy the rom from the SD card to flash or PSRAM and start the game */
 #if ENABLE_PSRAM
-      load_cart_rom_file_to_PSRAM(filename[selected]);
+      load_cart_rom_file_to_rom_and_PSRAM(filename[selected]);
+      //load_cart_rom_file_to_PSRAM(filename[selected]);
 #else
       load_cart_rom_file(filename[selected]);
 #endif

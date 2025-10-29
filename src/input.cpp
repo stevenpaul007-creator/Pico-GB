@@ -157,9 +157,7 @@ void handleSerial() {
     end_time = time_us_64();
     diff = end_time - start_time;
     fps = ((uint64_t)frames * 1000 * 1000) / diff;
-    Serial.printf("Frames: %u\n"
-                  "Time: %lu us\n"
-                  "FPS: %lu\n",
+    Serial.printf("Frames: %u\tTime: %lu us\tFPS: %lu\r\n",
         frames, diff, fps);
     Serial.flush();
     frames = 0;

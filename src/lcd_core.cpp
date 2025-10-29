@@ -44,7 +44,7 @@ static uint8_t scaledLineOffsetTable[LCD_HEIGHT]; // scaled to 240 lines
 /* Pixel data is stored in here. */
 static uint8_t pixels_buffer[LCD_WIDTH];
 
-volatile ScalingMode scalingMode = ScalingMode::STRETCH_KEEP_ASPECT; 
+volatile ScalingMode scalingMode = ScalingMode::STRETCH; 
 
 static int lcd_line_busy = 0;
 

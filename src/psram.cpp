@@ -124,12 +124,7 @@ bool load_rom_to_psram(FsFile &f, uint32_t &out_size) {
   }
 
   // Debug: report file size if available
-  uint32_t fileSize = 0;
-  #if defined(FsFile_size)
-  fileSize = f.size();
-  #else
-  fileSize = f.size();
-  #endif
+  uint32_t fileSize = f.size();
   Serial.printf("psram: loading file, reported size=%lu\r\n", fileSize);
 
   uint8_t buf[TRANSFER_CHUNK];

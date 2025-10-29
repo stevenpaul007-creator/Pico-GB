@@ -26,7 +26,6 @@ const uint8_t *rom = GAME_DATA;
  * Game Boy DMG ROM size ranges from 32768 bytes (e.g. Tetris) to 1,048,576 bytes (e.g. Pokemod Red)
  */
 const uint8_t *rom = (const uint8_t *)(&_FS_start);
-uint32_t rom_size_bytes = 0;
 #endif
 
 static unsigned char rom_bank0[1024*100];
@@ -42,7 +41,7 @@ static uint8_t gb_rom_read(struct gb_s* gb, const uint_fast32_t addr) {
 
 #if ENABLE_PSRAM
   // If PSRAM is enabled and rom was loaded into PSRAM, read from PSRAM
-  if (rom_size_bytes > 0 && addr < rom_size_bytes) {
+  if (addr >= MAX_ROM_SIZE_MB) {
     return psram_read8(addr);
   }
 #endif
@@ -87,11 +86,13 @@ static uint8_t gb_bootrom_read(struct gb_s* gb, const uint_fast16_t addr) {
 #endif
 
 void initGbContext() {
-#if ENABLE_PSRAM
-  psram_read(0, rom_bank0, sizeof(rom_bank0));
-#else
+// #if ENABLE_PSRAM
+//   psram_read(0, rom_bank0, sizeof(rom_bank0));
+// #else
+//   memcpy(rom_bank0, rom, sizeof(rom_bank0));
+// #endif
+
   memcpy(rom_bank0, rom, sizeof(rom_bank0));
-#endif
 
   auto ret = gb_init(&gb, &gb_rom_read, &gb_cart_ram_read, &gb_cart_ram_write, &gb_error, NULL);
   if (ret != GB_INIT_NO_ERROR) {

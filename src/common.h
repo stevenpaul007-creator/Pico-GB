@@ -58,8 +58,8 @@
 extern uint8_t _FS_start;
 extern uint8_t _FS_end;
 #define MAX_ROM_SIZE (&_FS_end - &_FS_start)
+#define MAX_ROM_SIZE_MB 1024*1024*1.5
 #endif
-
 
 #if ENABLE_PSRAM
 #define PSRAM_SPI SPI1
