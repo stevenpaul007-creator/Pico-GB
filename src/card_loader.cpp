@@ -26,26 +26,17 @@
 
 #if ENABLE_PSRAM
 #include "psram.h"
-#include "gb.h"
 #endif
 
 #define RAM_SAVENAME_LENGTH 16 + 7
 
 SdFs sd;
 
-gpio_function_t UseSDPinFunctionScope::sd_sck_pin_func = GPIO_FUNC_NULL;
-gpio_function_t UseSDPinFunctionScope::sd_mosi_pin_func = GPIO_FUNC_NULL;
-
 bool init_sdcard_hardware() {
-  //auto scope = UseSDPinFunctionScope();
-
   SD_SPI.setMISO(SD_MISO_PIN);
   SD_SPI.setMOSI(SD_MOSI_PIN);
   SD_SPI.setSCK(SD_SCK_PIN);
   bool success = sd.begin(SdSpiConfig(SD_CS_PIN, SHARED_SPI, SD_SCK_MHZ(50), &SD_SPI));
-  if (success) {
-    //UseSDPinFunctionScope::init(); 
-  }
   return success;
 }
 
@@ -70,8 +61,6 @@ void init_sdcard() {
  * Load a save file from the SD card
  */
 void read_cart_ram_file(struct gb_s* gb) {
-  //@REM auto scope = UseSDPinFunctionScope();
-
   char filename[RAM_SAVENAME_LENGTH];
   uint_fast32_t save_size;
   FsFile file;
@@ -102,8 +91,6 @@ void read_cart_ram_file(struct gb_s* gb) {
  * Write a save file to the SD card
  */
 void write_cart_ram_file(struct gb_s* gb) {
-  //@REM auto scope = UseSDPinFunctionScope();
-
   char filename[RAM_SAVENAME_LENGTH];
   uint_fast32_t save_size;
   FsFile file;
@@ -131,11 +118,8 @@ void write_cart_ram_file(struct gb_s* gb) {
 }
 
 bool write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint32_t offset) {
-  //@REEMauto scope = UseSDPinFunctionScope();
-
   int nread = file.read(buffer, FLASH_SECTOR_SIZE);
   if (nread < 0) {
-    //@REEMscope.close();
     error("Failed to read file!");    
   }
 
@@ -160,8 +144,6 @@ bool write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint32_t offset) {
 }
 
 static void open_rom_file(FsFile& file, char* filename) {
-  //@REEMauto scope = UseSDPinFunctionScope();
-
   if (!file.open(filename, O_RDONLY)) {
     //@REEMscope.close();
     error("Failed to open ROM: " + String(filename));
@@ -169,8 +151,6 @@ static void open_rom_file(FsFile& file, char* filename) {
 }
 
 static void close_rom_file(FsFile& file) {
-  //@REEMauto scope = UseSDPinFunctionScope();
-
   if (!file.close()) {
     Serial.printf("E f_close error\r\n");
   }
@@ -243,42 +223,6 @@ void load_cart_rom_file_to_rom_and_PSRAM(char* filename) {
 
   Serial.printf("I load_cart_rom_file(%s) COMPLETE\r\n", filename);
   close_rom_file(file);
-
-
-}
-/**
- * Load a .gb rom file in PSRAM from the SD card
- */
-void load_cart_rom_file_to_PSRAM(char* filename) {
-
-  tft.fillScreen(TFT_BLACK);
-  tft.setCursor(0, 0, FONT_ID);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.println("Loading ROM: ");
-
-  FsFile file;
-  Serial.printf("psram: opening file '%s'\r\n", filename);
-  open_rom_file(file, filename);
-  Serial.println("psram: file opened");
-
-  if (!psram_init()) {
-    error("PSRAM init failed");
-  } else {
-    uint32_t written = 0;
-    bool ok = load_rom_to_psram(file, written);
-    Serial.printf("psram: load_rom_to_psram returned %s, written=%lu\r\n", ok ? "true" : "false", written);
-    if (ok && written > 0) {
-      // inform gb about rom size so reads use PSRAM
-      Serial.printf("I Loaded ROM to PSRAM (%lu bytes)\r\n", written);
-    } else if (ok && written == 0) {
-      Serial.println("psram: loader succeeded but wrote 0 bytes");
-      error("PSRAM load produced 0 bytes");
-    } else {
-      error("Failed to load ROM to PSRAM");
-    }
-  }
-  close_rom_file(file);
-  Serial.printf("I load_cart_rom_file_to_PSRAM(%s) COMPLETE\r\n", filename);
 }
 #else
 /**
@@ -320,8 +264,6 @@ void load_cart_rom_file(char* filename) {
 #endif
 
 static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_LENGTH], uint16_t num_page) {
-  //@REEMauto scope = UseSDPinFunctionScope();
-
   FsFile dir;
   FsFile file;
 
@@ -331,7 +273,6 @@ static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_
   }
 
   if (!dir.open("/")) {
-    //@REEMscope.close();
     error("Failed to open root dir");
   }
 
@@ -442,7 +383,6 @@ void rom_file_selector() {
       /* copy the rom from the SD card to flash or PSRAM and start the game */
 #if ENABLE_PSRAM
       load_cart_rom_file_to_rom_and_PSRAM(filename[selected]);
-      //load_cart_rom_file_to_PSRAM(filename[selected]);
 #else
       load_cart_rom_file(filename[selected]);
 #endif

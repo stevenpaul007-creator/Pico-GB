@@ -27,11 +27,6 @@ static inline void ensure_cs_pins() {
 
 bool psram_init() {
   ensure_cs_pins();
-
-  // Do NOT reconfigure or call begin() on the shared SPI object here.
-  // The SD card driver already initializes SPI and SdFs expects to manage it.
-  // Reinitializing SPI pins here can break open FsFile operations.
-
   return true;
 }
 
@@ -113,55 +108,12 @@ bool psram_write(uint32_t addr, const void* buf, size_t len) {
 
   return true;
 }
-
-bool load_rom_to_psram(FsFile &f, uint32_t &out_size) {
-  if (!f.isOpen()) return false;
-
-  // Rewind
-  if (!f.seekSet(0)) {
-    Serial.println("psram: seekSet(0) failed");
-    return false;
-  }
-
-  // Debug: report file size if available
-  uint32_t fileSize = f.size();
-  Serial.printf("psram: loading file, reported size=%lu\r\n", fileSize);
-
-  uint8_t buf[TRANSFER_CHUNK];
-  uint32_t addr = 0;
-  int32_t n;
-  while ((n = f.read(buf, sizeof(buf))) > 0) {
-    // Debug: report the first successful read size
-    if (addr == 0) {
-      Serial.printf("psram: first read returned %d bytes\r\n", n);
-    }
-
-    if ((uint32_t)n + addr > psram_size_bytes()) {
-      Serial.println("psram: file too big for PSRAM");
-      return false; // too big
-    }
-    if (!psram_write(addr, buf, (size_t)n)) {
-      Serial.println("psram: psram_write failed");
-      return false;
-    }
-    addr += (uint32_t)n;
-  }
-
-  if (n < 0) {
-    Serial.printf("psram: file read error (code=%d)\r\n", n);
-  }
-
-  out_size = addr;
-  return true;
-}
-
 #else
 
 // Stubs when PSRAM disabled so code can link
 bool psram_init() { return false; }
 bool psram_read(uint32_t addr, void* buf, size_t len) { (void)addr; (void)buf; (void)len; return false; }
 bool psram_write(uint32_t addr, const void* buf, size_t len) { (void)addr; (void)buf; (void)len; return false; }
-bool load_rom_to_psram(FsFile &f, uint32_t &out_size) { (void)f; out_size = 0; return false; }
 uint32_t psram_size_bytes() { return 0; }
 
 #endif
