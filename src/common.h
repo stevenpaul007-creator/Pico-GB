@@ -10,7 +10,7 @@
 #define INPUT_GPIO 1
 #define INPUT_PCF8574 2
 #define ENABLE_INPUT 1
-#define ENABLE_PSRAM 0
+#define ENABLE_PSRAM 1
 
 
 /* Joypad Pins. */

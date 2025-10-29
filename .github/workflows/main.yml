@@ -36,18 +36,21 @@ jobs:
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
-      - name: Build PlatformIO Project
-        run: pio run --environment pico2 
-      - name: Rename UF2 file
-        run: mv .pio/build/pico2/firmware.uf2 .pio/build/pico2/pico2-gb.uf2
-
-      - name: Get UF2 file path
-        id: get_uf2_file
+      - name: Build PlatformIO Project (ENABLE_PSRAM=0)
         run: |
-          # Find the UF2 file based on your project configuration
+          # Build with PSRAM disabled and move the resulting UF2 to a unique name
+          pio run --environment pico2 --silent -D ENABLE_PSRAM=0
           UF2_FILE=$(find .pio/build/pico2 -name "*.uf2" | head -n 1)
           echo "Found UF2 file: $UF2_FILE"
-          echo "uf2_path=$UF2_FILE" >> $GITHUB_OUTPUT
+          mv "$UF2_FILE" .pio/build/pico2/pico2-gb-nopsram.uf2
+
+      - name: Build PlatformIO Project (ENABLE_PSRAM=1)
+        run: |
+          # Build with PSRAM enabled and move the resulting UF2 to a unique name
+          pio run --environment pico2 --silent -D ENABLE_PSRAM=1
+          UF2_FILE=$(find .pio/build/pico2 -name "*.uf2" | head -n 1)
+          echo "Found UF2 file: $UF2_FILE"
+          mv "$UF2_FILE" .pio/build/pico2/pico2-gb-psram.uf2
 
       - name: Create GitHub Release
         id: create_release
@@ -60,13 +63,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload UF2 to Release
+      - name: Upload UF2 to Release (ENABLE_PSRAM=1)
         if: steps.create_release.outputs.upload_url
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: .pio/build/pico2/pico2-gb.uf2
-          asset_name: pico2-gb-v${{ steps.version_increment.outputs.version }}.uf2
+          asset_path: .pio/build/pico2/pico2-gb-psram.uf2
+          asset_name: pico2-gb-psram-v${{ steps.version_increment.outputs.version }}.uf2
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload UF2 to Release (ENABLE_PSRAM=0)
+        if: steps.create_release.outputs.upload_url
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: .pio/build/pico2/pico2-gb-nopsram.uf2
+          asset_name: pico2-gb-nopsram-v${{ steps.version_increment.outputs.version }}.uf2
           asset_content_type: application/octet-stream
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
