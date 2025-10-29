@@ -38,16 +38,14 @@ jobs:
 
       - name: Build PlatformIO Project (ENABLE_PSRAM=1)
         run: |
-          # Build with PSRAM enabled and move the resulting UF2 to a unique name
-            pio run --environment pico2"
+          pio run --environment pico2
           UF2_FILE=$(find .pio/build/pico2 -name "*.uf2" | head -n 1)
           echo "Found UF2 file: $UF2_FILE"
           mv "$UF2_FILE" .pio/build/pico2/pico2-gb-psram.uf2
 
       - name: Build PlatformIO Project (ENABLE_PSRAM=0)
         run: |
-          # Build with PSRAM disabled and move the resulting UF2 to a unique name
-            pio run --environment pico2-nopsram"
+          pio run --environment pico2-nopsram
           UF2_FILE=$(find .pio/build/pico2-nopsram -name "*.uf2" | head -n 1)
           echo "Found UF2 file: $UF2_FILE"
           mv "$UF2_FILE" .pio/build/pico2-nopsram/pico2-gb-nopsram.uf2
