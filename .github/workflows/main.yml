@@ -14,14 +14,14 @@ jobs:
             ~/.cache/pip
             ~/.platformio/.cache
           key: ${{ runner.os }}-pio
-      - name: Tag new version
-        id: tag_version
-        uses: telia-actions/github-increment-version-action@v1
+          
+      - name: Get next version
+        id: version_increment
+        uses: reecetech/version-increment@2024.10.1
         with:
-          default_bump: 'patch' # You can change this to 'minor' or 'major'
-          release_branches: 'master'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          increment: 'patch'
+          scheme: 'semver'
+          
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
