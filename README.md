@@ -61,7 +61,7 @@ It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTec
 * (1x) PCB or Breadboard
 * Dupont Wires Assorted Kit (Male to Female + Male to Male + Female to Female)
 * Preformed Breadboard Jumper Wires
-* (optional) A APS6404L is required if your flash is smaller than your rom file. Like my Pico 2 with a 2MB flash, I could only load a rom within 1MB. If you would linke to load a bigger rom, you can add a APS6404 to SD card IOs with another CS pin. And modify ENABLE_PSRAM to 1, MAX_ROM_SIZE_MB to what ever depends on your flash size(1.5mb is default for 2mb).
+* (optional) A APS6404L is required if your flash is smaller than your rom file. Like my Pico 2 with a 2MB flash, I could only load a rom within 1MB. If you would like to load a bigger rom, you can add a APS6404 to SD card IOs with another CS pin. And modify ENABLE_PSRAM to 1, MAX_ROM_SIZE_MB to what ever depends on your flash size(1.5mb is default for 2mb).
 
 Last but not least: you might want a shell.
 * You might like the one from YouMakeTech: [Pico-GB 3d-printed Game Boy emulator handheld gaming console for Raspberry Pi Pico](https://www.youmaketech.com/pico-gb-gameboy-emulator-handheld-for-raspberry-pi-pico/) that ressembles to the original Nintendo Game Boy released in 1989.
@@ -70,9 +70,8 @@ Last but not least: you might want a shell.
 
 # Pinout
 You must select your pinout via the tft-espi-config/tft_setup.h (for the display) and common.h (audio, input, sd-card) files.
-For my 16-bit display with IO expander I use the following pins:
 
-* I2C IO Expander (PCF8574), NOT TESTED
+* I2C IO Expander (PCF8574), NOT USED OR TESTED
   * SDA = NC
   * SCL = NC
   * UP / DOWN / LEFT / RIGHT / BUTTON A + B / SELECT / START = I2C IO Expander pins 0-7
@@ -90,7 +89,7 @@ For my 16-bit display with IO expander I use the following pins:
   * CSK = GP14
   * MOSI = GP15
   * MISO = GP12
-* PSRAM,(APS6404L), using SPI1
+* PSRAM(APS6404L), using SPI1
   * CS = GP6
   * CSK = GP14
   * MOSI = GP15
@@ -108,8 +107,6 @@ For my 16-bit display with IO expander I use the following pins:
   * LRC = GP11
 
 As there is no pin left, reading the Display for VSYNC is not possible, so screen tearing might occur.
-An 8-bit parallel LCD might be better suited for this project.
-Maybe with 16-bit, the read pin can be shared with SD MISO(?) but at the moment no VSYNC support is enabled so far. The tearing is only visible slightly when the screen scrolls to the left or right.
 
 # Flashing the firmware
 As the project has to be configured to the display you want to use, there is no precompiled binary or UF2. You have to config the project first and then build and flash the firmware on your own with PlatformIO. See the next section.
