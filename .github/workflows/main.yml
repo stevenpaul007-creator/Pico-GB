@@ -1,21 +1,24 @@
-  - name: PlatformIO Run
-  # You may pin to the exact commit or the version.
-  # uses: karniv00l/platformio-run-action@e6467e68a40b381568bad448faf0a1413c72fc7f
-  uses: karniv00l/platformio-run-action@v1.1.2
-  with:
-    # Process specified environments (comma separated).
-    environments: pico2-2m
-    # Process specified targets (comma separated).
-    targets: # optional
-    # Specify the path to project directory. By default, project-dir is equal to current working directory (CWD).
-    project-dir: # optional
-    # Process project with a custom platformio.ini
-    project-conf: # optional
-    # Control a number of parallel build jobs. Default is a number of CPUs in a system.
-    jobs: # optional
-    # Suppress progress reporting.
-    silent: # optional
-    # Shows detailed information when processing environments.
-    verbose: # optional
-    # Disable auto-clean of build_dir when platformio.ini or src_dir (project structure) have been modified.
-    disable-auto-clean: # optional
+name: PlatformIO CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build PlatformIO Project
+        run: pio run --environment pico2 
