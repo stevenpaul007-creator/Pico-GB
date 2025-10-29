@@ -34,8 +34,6 @@ jobs:
           python-version: '3.11'
           
       - name: Install PlatformIO Core
-        # Only install if the cache is a miss.
-        if: steps.cache-pio.outputs.cache-hit != 'true'
         run: pip install --upgrade platformio
 
       - name: Build PlatformIO Project
