@@ -257,6 +257,12 @@ void handleJoypad() {
   }
 #endif
 
+  if (!gb.direct.joypad_bits.left) {
+    if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
+      gb_reset();
+    }
+  }
+
   /* hotkeys (select + * combo)*/
   if (!gb.direct.joypad_bits.select) {
 #if ENABLE_SOUND

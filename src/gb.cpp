@@ -86,12 +86,6 @@ static uint8_t gb_bootrom_read(struct gb_s* gb, const uint_fast16_t addr) {
 #endif
 
 void initGbContext() {
-// #if ENABLE_PSRAM
-//   psram_read(0, rom_bank0, sizeof(rom_bank0));
-// #else
-//   memcpy(rom_bank0, rom, sizeof(rom_bank0));
-// #endif
-
   memcpy(rom_bank0, rom, sizeof(rom_bank0));
 
   auto ret = gb_init(&gb, &gb_rom_read, &gb_cart_ram_read, &gb_cart_ram_write, &gb_error, NULL);
@@ -104,4 +98,8 @@ void initGbContext() {
   gb_set_bootrom(&gb, &gb_bootrom_read);
   gb_reset(&gb);
 #endif
+}
+
+void gb_reset(){
+  gb_reset(&gb);
 }

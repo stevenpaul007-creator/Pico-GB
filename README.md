@@ -135,9 +135,10 @@ The SD card is used to store game roms and save game progress. For this project,
 * select + down = volume down
 * select + left = load ram
 * select + right = save ram (to /SAVES/)
-* select + start = restart
+* select + start = restart (to rom list)
 * select + B = screen scale mode
 * select + A = frame skip mode and turn off sound
+* left + start = in-game reset
 
 # License
 MIT

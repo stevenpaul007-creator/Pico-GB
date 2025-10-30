@@ -14,3 +14,4 @@ extern const uint8_t* rom;
 extern uint8_t ram[RAM_SIZE];
 
 void initGbContext();
+void gb_reset();
