@@ -372,6 +372,10 @@ void rom_file_selector() {
     b = readJoypad(PIN_B);
     select = readJoypad(PIN_SELECT);
     start = readJoypad(PIN_START);
+    
+    if (!start && !select) {
+      reset();
+    }
     if (!start) {
       /* re-start the last game (no need to reprogram flash) */
 #if ENABLE_PSRAM
