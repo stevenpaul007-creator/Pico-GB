@@ -134,14 +134,17 @@ The SD card is used to store game roms and save game progress. For this project,
 # In-game key combos
 * select + up = volume up
 * select + down = volume down
-* select + left = load ram
-* select + right = save ram (to /SAVES/)
+* select + left = next palette
+* select + right = prev palette
 * select + start = restart (to rom list)
 * select + B = screen scale mode
 * select + A = frame skip mode and turn off sound
+* start + left = save ram (to /SAVES/)
+* start + right = load ram
 * left + start = in-game reset
 * left + select = save state. To ram and SD card. Need /rtsav/ folder created first.
 * right + select = load state. From ram first or from SD card.
+* hold select + power on = flash mode
 
 # License
 MIT

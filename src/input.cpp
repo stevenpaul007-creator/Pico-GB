@@ -258,6 +258,19 @@ void handleJoypad() {
   }
 #endif
 
+  if (!gb.direct.joypad_bits.start) {
+    if (!gb.direct.joypad_bits.right && prev_joypad_bits.right) {
+#if ENABLE_SDCARD
+      read_cart_ram_file(&gb);
+#endif
+    }
+    if (!gb.direct.joypad_bits.left && prev_joypad_bits.left) {
+#if ENABLE_SDCARD
+      write_cart_ram_file(&gb);
+#endif
+    }
+
+  }
   if (!gb.direct.joypad_bits.left) {
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       gb_reset();
@@ -286,24 +299,15 @@ void handleJoypad() {
     }
 #endif
     if (!gb.direct.joypad_bits.right && prev_joypad_bits.right) {
-/* select + right: select the next manual color palette */
-// nextPalette();
-#if ENABLE_SDCARD
-      write_cart_ram_file(&gb);
-#endif
+      /* select + right: select the next manual color palette */
+      nextPalette();
     }
     if (!gb.direct.joypad_bits.left && prev_joypad_bits.left) {
-/* select + left: select the previous manual color palette */
-// prevPalette();
-#if ENABLE_SDCARD
-      read_cart_ram_file(&gb);
-#endif
+      /* select + left: select the previous manual color palette */
+      prevPalette();
     }
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       /* select + start: save ram and resets to the game selection menu */
-      // #if ENABLE_SDCARD
-      //       write_cart_ram_file(&gb);
-      // #endif
       reset();
     }
     if (!gb.direct.joypad_bits.a && prev_joypad_bits.a) {
