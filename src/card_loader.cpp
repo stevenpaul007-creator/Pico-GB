@@ -13,16 +13,17 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
- #if ENABLE_SDCARD
+#if ENABLE_SDCARD
+
+#include "card_loader.h"
+
+#include "SdFat.h"
+#include "common.h"
+#include "gb.h"
+#include "hardware/flash.h"
+#include "input.h"
 
 #include <Arduino.h>
-#include "SdFat.h"
-#include "hardware/flash.h"
-
-#include "common.h"
-#include "input.h"
-#include "gb.h"
-#include "card_loader.h"
 
 #if ENABLE_PSRAM
 #include "psram.h"
@@ -31,6 +32,8 @@
 #define RAM_SAVENAME_LENGTH 16 + 7
 
 SdFs sd;
+struct gb_save_state_s save;
+bool is_real_time_savestate_loaded = false;
 
 bool init_sdcard_hardware() {
   SD_SPI.setMISO(SD_MISO_PIN);
@@ -53,7 +56,7 @@ void init_sdcard() {
   if (sd.vol()->fatType() == 0) { // vol() and fatType() do not access the sd-card
     error("Can't find a valid FAT16/FAT32/exFAT partition");
   }
-  
+
   Serial.printf("SD-Card initialized: FAT-Type=%d\r\n", sd.vol()->fatType());
 }
 
@@ -67,10 +70,10 @@ void read_cart_ram_file(struct gb_s* gb) {
 
   gb_get_rom_name(gb, filename);
   save_size = gb_get_save_size(gb);
-  
+
   String f = String("SAVES/");
   f.concat(filename);
-  f.toCharArray(filename,RAM_SAVENAME_LENGTH);
+  f.toCharArray(filename, RAM_SAVENAME_LENGTH);
 
   if (save_size > 0) {
     if (!file.open(filename, O_RDONLY)) {
@@ -97,10 +100,10 @@ void write_cart_ram_file(struct gb_s* gb) {
 
   gb_get_rom_name(gb, filename);
   save_size = gb_get_save_size(gb);
-  
+
   String f = String("SAVES/");
   f.concat(filename);
-  f.toCharArray(filename,RAM_SAVENAME_LENGTH);
+  f.toCharArray(filename, RAM_SAVENAME_LENGTH);
 
   if (save_size > 0) {
     if (!file.open(filename, O_WRONLY | O_CREAT)) {
@@ -120,14 +123,14 @@ void write_cart_ram_file(struct gb_s* gb) {
 bool write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint32_t offset) {
   int nread = file.read(buffer, FLASH_SECTOR_SIZE);
   if (nread < 0) {
-    error("Failed to read file!");    
+    error("Failed to read file!");
   }
 
   if (nread == 0) {
     return false;
   }
 
-  uint32_t flash_offset = ((uint32_t) &rom[offset]) - XIP_BASE;
+  uint32_t flash_offset = ((uint32_t)&rom[offset]) - XIP_BASE;
 
   uint32_t ints = save_and_disable_interrupts();
   flash_range_erase(flash_offset, FLASH_SECTOR_SIZE);
@@ -161,7 +164,7 @@ void load_cart_rom_file_to_rom_and_PSRAM(char* filename) {
   tft.setCursor(0, 0, FONT_ID);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.println("Loading ROM: ");
-  
+
   uint8_t buffer[FLASH_SECTOR_SIZE];
 
   FsFile file;
@@ -171,7 +174,6 @@ void load_cart_rom_file_to_rom_and_PSRAM(char* filename) {
   uint32_t fileSize = file.size();
   Serial.printf("psram: file opened, size = %lu\r\n", fileSize);
 
-  
   Serial.printf("I Program target region...\r\n");
 
   uint32_t offset = 0;
@@ -179,7 +181,7 @@ void load_cart_rom_file_to_rom_and_PSRAM(char* filename) {
 
   while (true) {
     tft.print("#");
-    
+
     // Check if we've crossed into PSRAM section
     if (!in_psram_section && offset >= MAX_ROM_SIZE_MB) {
       Serial.println("\nSwitching to PSRAM section");
@@ -191,20 +193,19 @@ void load_cart_rom_file_to_rom_and_PSRAM(char* filename) {
     }
 
     // write to flash
-    if (!in_psram_section)
-    { 
+    if (!in_psram_section) {
       // Use the working write_rom_sector_to_flash function
       if (!write_rom_sector_to_flash(file, buffer, offset)) {
         error("Flash programming failed");
       }
-    }else{
+    } else {
       // write to PSRAM
       if (!psram_init()) {
         error("PSRAM init failed");
       } else {
         int nread = file.read(buffer, FLASH_SECTOR_SIZE);
         if (nread < 0) {
-          error("Failed to read file!");    
+          error("Failed to read file!");
         }
         if (nread == 0) {
           break;
@@ -218,8 +219,7 @@ void load_cart_rom_file_to_rom_and_PSRAM(char* filename) {
     }
     /* Next sector */
     offset += FLASH_SECTOR_SIZE;
-  }  
-
+  }
 
   Serial.printf("I load_cart_rom_file(%s) COMPLETE\r\n", filename);
   close_rom_file(file);
@@ -247,13 +247,11 @@ void load_cart_rom_file(char* filename) {
 
     /* Next sector */
     offset += FLASH_SECTOR_SIZE;
-    if (offset >= MAX_ROM_SIZE)
-    {
+    if (offset >= MAX_ROM_SIZE) {
       Serial.printf("I MAX_ROM_SIZE = (%d)\r\n", MAX_ROM_SIZE);
       Serial.printf("I offset = (%d)\r\n", offset);
       break;
     }
-    
   }
 
   close_rom_file(file);
@@ -282,20 +280,18 @@ static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_
   char currentFilename[MAX_PATH_LENGTH];
   while (file.openNext(&dir, O_RDONLY)) {
     file.getName(currentFilename, sizeof(currentFilename));
-    
+
     auto currentFilenameStr = String(currentFilename);
     currentFilenameStr.toLowerCase();
     if (!currentFilenameStr.endsWith(".gb") && !currentFilenameStr.endsWith(".gbc")) {
       continue;
     }
-    Serial.printf("I Found file: (%s)\r\n", currentFilenameStr);
 
     if (num_files < num_file_offset) {
       // skip the first N pages
     } else {
       // store the filenames of this page
-      strcpy(filename[num_files%FILES_PER_PAGE], currentFilename);
-      Serial.printf("I Copy file %02d Name: (%s)\r\n", num_files%FILES_PER_PAGE, currentFilenameStr);
+      strcpy(filename[num_files % FILES_PER_PAGE], currentFilename);
     }
 
     num_files++;
@@ -307,15 +303,14 @@ static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_
   }
 
   dir.close();
-  if (num_files == 0){
+  if (num_files == 0) {
     return 0;
   }
-  if (num_files % FILES_PER_PAGE == 0){
+  if (num_files % FILES_PER_PAGE == 0) {
     return FILES_PER_PAGE;
   }
-  return num_files%FILES_PER_PAGE;
+  return num_files % FILES_PER_PAGE;
 }
-
 
 void print_file_entry(char* s, uint8_t index, uint8_t num_files, bool selected = false) {
   if (num_files == 0) {
@@ -372,7 +367,7 @@ void rom_file_selector() {
     b = readJoypad(PIN_B);
     select = readJoypad(PIN_SELECT);
     start = readJoypad(PIN_START);
-    
+
     if (!start && !select) {
       reset();
     }
@@ -414,7 +409,7 @@ void rom_file_selector() {
     }
     if (!right) {
       /* select the next page */
-      if(num_files < FILES_PER_PAGE) {
+      if (num_files < FILES_PER_PAGE) {
         /* no more pages */
         continue;
       }
@@ -441,6 +436,106 @@ void rom_file_selector() {
     }
     tight_loop_contents();
   }
+}
+
+void save_state(struct gb_s* gb) {
+  Serial.println("I save_state ...");
+  save.mbc = gb->mbc;
+  save.cart_ram = gb->cart_ram;
+  save.num_rom_banks_mask = gb->num_rom_banks_mask;
+  save.num_ram_banks = gb->num_ram_banks;
+  save.selected_rom_bank = gb->selected_rom_bank;
+  save.cart_ram_bank = gb->cart_ram_bank;
+  save.enable_cart_ram = gb->enable_cart_ram;
+  save.cart_mode_select = gb->cart_mode_select;
+  save.rtc_latched = gb->rtc_latched;
+  save.rtc_real = gb->rtc_real;
+  save.cpu_reg = gb->cpu_reg;
+
+  save.counter = gb->counter;
+  memcpy(save.wram, gb->wram, WRAM_SIZE);
+  memcpy(save.vram, gb->vram, VRAM_SIZE);
+  memcpy(save.oam, gb->oam, OAM_SIZE);
+  memcpy(save.hram_io, gb->hram_io, HRAM_IO_SIZE);
+  Serial.println("I save_state done");
+  is_real_time_savestate_loaded = true;
+  
+  char filename[RAM_SAVENAME_LENGTH];
+  uint_fast32_t save_size;
+  FsFile file;
+
+  gb_get_rom_name(gb, filename);
+
+  String f = String("rtsav/");
+  f.concat(filename);
+  f.toCharArray(filename,RAM_SAVENAME_LENGTH);
+  Serial.printf("I f_open(%s) \r\n", filename);
+
+  save_size = sizeof(save);
+  if (save_size > 0) {
+    if (!file.open(filename, O_WRONLY | O_CREAT)) {
+      Serial.printf("E f_open(%s) error\r\n", filename);
+      return;
+    }
+
+    file.write((uint8_t*)&save, sizeof(save));
+
+    if (!file.close()) {
+      Serial.printf("E f_close error\r\n");
+    }
+    Serial.println("I save_state written");
+  }
+}
+
+void load_state(struct gb_s* gb) {
+  Serial.println("I load_state ...");
+  if (!is_real_time_savestate_loaded) {
+#ifdef ENABLE_SDCARD
+    Serial.println("I no savestate in ram, try loading file ...");
+    char filename[RAM_SAVENAME_LENGTH];
+    FsFile file;
+
+    gb_get_rom_name(gb, filename);
+
+    String f = String("rtsav/");
+    f.concat(filename);
+    f.toCharArray(filename, RAM_SAVENAME_LENGTH);
+    if (!file.open(filename, O_RDONLY)) {
+      Serial.printf("E f_open(%s) error\r\n", filename);
+      return;
+    } else {
+
+      file.read((uint8_t*)&save, sizeof(save));
+      is_real_time_savestate_loaded = true;
+
+      if (!file.close()) {
+        Serial.printf("E f_close error\r\n");
+      }
+    }
+#else
+    Serial.println("I no savestate in ram");
+    return;
+#endif
+  }
+  gb->mbc = save.mbc;
+  gb->cart_ram = save.cart_ram;
+  gb->num_rom_banks_mask = save.num_rom_banks_mask;
+  gb->num_ram_banks = save.num_ram_banks;
+  gb->selected_rom_bank = save.selected_rom_bank;
+  gb->cart_ram_bank = save.cart_ram_bank;
+  gb->enable_cart_ram = save.enable_cart_ram;
+  gb->cart_mode_select = save.cart_mode_select;
+  gb->rtc_latched = save.rtc_latched;
+  gb->rtc_real = save.rtc_real;
+  gb->cpu_reg = save.cpu_reg;
+
+  gb->counter = save.counter;
+  memcpy(gb->wram, save.wram, WRAM_SIZE);
+  memcpy(gb->vram, save.vram, VRAM_SIZE);
+  memcpy(gb->oam, save.oam, OAM_SIZE);
+  memcpy(gb->hram_io, save.hram_io, HRAM_IO_SIZE);
+
+  Serial.println("I load_state loaded");
 }
 
 #endif

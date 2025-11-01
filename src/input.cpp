@@ -13,8 +13,9 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "common.h"
 #include "input.h"
+
+#include "common.h"
 #include "gb.h"
 
 #if ENABLE_SDCARD
@@ -52,11 +53,11 @@ static void initJoypadI2CIoExpander() {
   }
 
   pcf8574.setLatency(5);
-  
-  if (!pcf8574.begin()){
-		Serial.println("PCF8574 initialization failed");
+
+  if (!pcf8574.begin()) {
+    Serial.println("PCF8574 initialization failed");
     reset();
-	}
+  }
 }
 
 bool readJoypad(uint8_t pin) {
@@ -91,7 +92,7 @@ static void initJoypadGpios() {
   gpio_pull_up(PIN_A);
   gpio_pull_up(PIN_B);
   gpio_pull_up(PIN_SELECT);
-  gpio_pull_up(PIN_START);  
+  gpio_pull_up(PIN_START);
 }
 
 bool readJoypad(uint8_t pin) {
@@ -261,6 +262,15 @@ void handleJoypad() {
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       gb_reset();
     }
+    if (!gb.direct.joypad_bits.select && prev_joypad_bits.select) {
+      save_state(&gb);
+    }
+  }
+
+  if (!gb.direct.joypad_bits.right) {
+    if (!gb.direct.joypad_bits.select && prev_joypad_bits.select) {
+      load_state(&gb);
+    }
   }
 
   /* hotkeys (select + * combo)*/
@@ -276,24 +286,24 @@ void handleJoypad() {
     }
 #endif
     if (!gb.direct.joypad_bits.right && prev_joypad_bits.right) {
-      /* select + right: select the next manual color palette */
-      //nextPalette();
-      #if ENABLE_SDCARD
+/* select + right: select the next manual color palette */
+// nextPalette();
+#if ENABLE_SDCARD
       write_cart_ram_file(&gb);
-      #endif
+#endif
     }
     if (!gb.direct.joypad_bits.left && prev_joypad_bits.left) {
-      /* select + left: select the previous manual color palette */
-      //prevPalette();
-      #if ENABLE_SDCARD
+/* select + left: select the previous manual color palette */
+// prevPalette();
+#if ENABLE_SDCARD
       read_cart_ram_file(&gb);
-      #endif
+#endif
     }
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       /* select + start: save ram and resets to the game selection menu */
-// #if ENABLE_SDCARD
-//       write_cart_ram_file(&gb);
-// #endif
+      // #if ENABLE_SDCARD
+      //       write_cart_ram_file(&gb);
+      // #endif
       reset();
     }
     if (!gb.direct.joypad_bits.a && prev_joypad_bits.a) {
@@ -303,7 +313,7 @@ void handleJoypad() {
     }
     if (!gb.direct.joypad_bits.b && prev_joypad_bits.b) {
       /* select + B: change scaling mode */
-      scalingMode = (ScalingMode)(((int) scalingMode + 1) % ((int) ScalingMode::COUNT));
+      scalingMode = (ScalingMode)(((int)scalingMode + 1) % ((int)ScalingMode::COUNT));
       union core_cmd cmd;
       cmd.cmd = CORE_CMD_IDLE_SET;
       multicore_fifo_push_blocking(cmd.full);

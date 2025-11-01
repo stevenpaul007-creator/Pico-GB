@@ -28,7 +28,7 @@ const uint8_t *rom = GAME_DATA;
 const uint8_t *rom = (const uint8_t *)(&_FS_start);
 #endif
 
-static unsigned char rom_bank0[1024*100];
+static unsigned char rom_bank0[1024*32];
 
 /**
  * Returns a byte from the ROM file at the given address.

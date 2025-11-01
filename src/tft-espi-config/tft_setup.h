@@ -108,6 +108,7 @@
 #define TFT_CS    4     // LCD CS
 #define TFT_DC    7     // LCD RS (Data/Command)
 #define TFT_RST   8     // LCD RST
+#define TOUCH_CS -1    // Touch screen CS pin (not used)
 
 #ifdef TFT_PARALLEL_16_BIT
 

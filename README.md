@@ -2,6 +2,7 @@
 
 This is a fork of [YouMakeTech's Pico-GB Game Boy emulator](https://github.com/YouMakeTech/Pico-GB) which again is a fork of the [Peanut-GB based RP2040-GB Game Boy (DMG) emulator from deltabeard](https://github.com/deltabeard/Peanut-GB).
 In addition to YouMakeTech and Deltabeards amazing work, this fork adds some improvements to the emulator like
+* support real time state save and load to SD card. Meaning you could continue your game after a cold power off and power on. THIS IS AMAZING.
 * support for a larger variety of displays by using [Bodmer TFT_eSPI library](https://github.com/Bodmer/TFT_eSPI)
 * scaling modes that can be toggled with `Select` + `B`. Note that no integer scaling is possible on this low resolution screens. The modes are:
   * full height with stretching to screen's width. Some columns/lines are doubled in this mode
@@ -139,6 +140,8 @@ The SD card is used to store game roms and save game progress. For this project,
 * select + B = screen scale mode
 * select + A = frame skip mode and turn off sound
 * left + start = in-game reset
+* left + select = save state. To ram and SD card. Need /rtsav/ folder created first.
+* right + select = load state. From ram first or from SD card.
 
 # License
 MIT
