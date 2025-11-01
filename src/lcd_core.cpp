@@ -67,6 +67,7 @@ void lcd_init(bool isCore1) {
     error("Failed to initialize TFT DMA");
   }
 #endif
+  spi_init(spi0, SPI_FREQUENCY);
 
   bool rotate = true;
 #if ENABLE_FRAMEBUFFER_FLIP_X_Y
