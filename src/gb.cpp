@@ -6,7 +6,7 @@
 #include "gbcolors.h"
 #include "gb.h"
 #include "common.h"
-#if ENABLE_PSRAM
+#if ENABLE_EXT_PSRAM
 #include "psram.h"
 #endif
 
@@ -20,6 +20,11 @@ uint8_t ram[RAM_SIZE];
 #include "game_bin.h"
 const uint8_t *rom = GAME_DATA;
 #else
+
+#if ENABLE_RP2040_PSRAM
+uint8_t* psram_rom = (uint8_t *)pmalloc(4 * 1024 * 1024); // 4MB max size for RP2040 PSRAM
+#endif
+
 /** Definition of ROM data
  * We're going to erase and reprogram the region defines as "Filesystem" in platformio.ini (see board_build.filesystem_size).
  * This is available from _FS_start (i.e. XIP_BASE + program size) to _FS_end. Note that the last sector is reserved for EEPROM.
@@ -39,7 +44,12 @@ static uint8_t gb_rom_read(struct gb_s* gb, const uint_fast32_t addr) {
   if (addr < sizeof(rom_bank0))
     return rom_bank0[addr];
 
-#if ENABLE_PSRAM
+
+#if ENABLE_RP2040_PSRAM
+  return psram_rom[addr];
+#endif
+
+#if ENABLE_EXT_PSRAM
   // If PSRAM is enabled and rom was loaded into PSRAM, read from PSRAM
   if (addr >= MAX_ROM_SIZE_MB) {
     return psram_read8(addr);
@@ -86,7 +96,12 @@ static uint8_t gb_bootrom_read(struct gb_s* gb, const uint_fast16_t addr) {
 #endif
 
 void initGbContext() {
+  
+#if ENABLE_RP2040_PSRAM
+  memcpy(rom_bank0, psram_rom, sizeof(rom_bank0));
+#else
   memcpy(rom_bank0, rom, sizeof(rom_bank0));
+#endif
 
   auto ret = gb_init(&gb, &gb_rom_read, &gb_cart_ram_read, &gb_cart_ram_write, &gb_error, NULL);
   if (ret != GB_INIT_NO_ERROR) {

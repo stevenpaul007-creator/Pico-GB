@@ -25,7 +25,7 @@
 
 #include <Arduino.h>
 
-#if ENABLE_PSRAM
+#if ENABLE_EXT_PSRAM
 #include "psram.h"
 #endif
 
@@ -158,7 +158,50 @@ static void close_rom_file(FsFile& file) {
     Serial.printf("E f_close error\r\n");
   }
 }
-#if ENABLE_PSRAM
+#if ENABLE_RP2040_PSRAM
+void load_cart_rom_file_to_PSRAM(char* filename) {
+  tft.fillScreen(TFT_BLACK);
+  tft.setCursor(0, 0, FONT_ID);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.println("Loading ROM: ");
+
+  uint8_t buffer[FLASH_SECTOR_SIZE];
+
+  FsFile file;
+  Serial.printf("psram: opening file '%s'\r\n", filename);
+  open_rom_file(file, filename);
+
+  uint32_t fileSize = file.size();
+  Serial.printf("psram: file opened, size = %lu\r\n", fileSize);
+
+  uint32_t offset = 0;
+
+  while (true) {
+    tft.print("#");
+    if (offset >= fileSize) {
+      Serial.println("\nReached end of file");
+      break;
+    }
+
+    int nread = file.read(buffer, FLASH_SECTOR_SIZE);
+    if (nread < 0) {
+      error("Failed to read file!");
+    }
+    if (nread == 0) {
+      break;
+    }
+    memcpy(psram_rom + offset, buffer, (size_t)nread);
+    /* Next sector */
+    offset += FLASH_SECTOR_SIZE;
+  }
+
+  Serial.printf("I load_cart_rom_file_to_PSRAM(%s) COMPLETE\r\n", filename);
+  close_rom_file(file);
+}
+
+#endif
+
+#if ENABLE_EXT_PSRAM
 void load_cart_rom_file_to_rom_and_PSRAM(char* filename) {
   tft.fillScreen(TFT_BLACK);
   tft.setCursor(0, 0, FONT_ID);
@@ -373,14 +416,18 @@ void rom_file_selector() {
     }
     if (!start) {
       /* re-start the last game (no need to reprogram flash) */
-#if ENABLE_PSRAM
+#if ENABLE_RP2040_PSRAM      
+      load_cart_rom_file_to_PSRAM(filename[selected]);
+#elif ENABLE_EXT_PSRAM
       load_cart_rom_file_to_rom_and_PSRAM(filename[selected]);
 #endif
       break;
     }
     if (!a | !b) {
       /* copy the rom from the SD card to flash or PSRAM and start the game */
-#if ENABLE_PSRAM
+#if ENABLE_RP2040_PSRAM      
+      load_cart_rom_file_to_PSRAM(filename[selected]);
+#elif ENABLE_EXT_PSRAM
       load_cart_rom_file_to_rom_and_PSRAM(filename[selected]);
 #else
       load_cart_rom_file(filename[selected]);

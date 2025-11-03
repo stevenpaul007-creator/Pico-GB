@@ -10,7 +10,7 @@
 #define INPUT_GPIO 1
 #define INPUT_PCF8574 2
 #define ENABLE_INPUT 1
-//#define ENABLE_PSRAM 1
+//#define ENABLE_EXT_PSRAM 1
 
 
 /* Joypad Pins. */
@@ -61,12 +61,17 @@ extern uint8_t _FS_end;
 #define MAX_ROM_SIZE_MB 1024*1024*1.5
 #endif
 
-#if ENABLE_PSRAM
+#if ENABLE_EXT_PSRAM
 #define PSRAM_SPI SPI1
 #define PSRAM_CS_PIN   6
 #define PSRAM_SCK_PIN  14
 #define PSRAM_MOSI_PIN 15
 #define PSRAM_MISO_PIN 12
+#endif
+
+#if ENABLE_RP2040_PSRAM
+// readme https://arduino-pico.readthedocs.io/en/latest/psram.html
+#define RP2350_PSRAM_CS   5
 #endif
 
 

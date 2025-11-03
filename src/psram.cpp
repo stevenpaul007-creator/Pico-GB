@@ -1,6 +1,6 @@
 #include "psram.h"
 
-#if ENABLE_PSRAM
+#if ENABLE_EXT_PSRAM
 
 // Opcodes
 static const uint8_t PSRAM_CMD_READ = 0x03;      // standard read

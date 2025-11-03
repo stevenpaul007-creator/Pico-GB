@@ -29,6 +29,7 @@ In addition to YouMakeTech and Deltabeards amazing work, this fork adds some imp
     </div>
 * migration to [PlatformIO](https://platformio.org/) for easier development and integration of third-party libraries
 * support for I2C IO expanders in case you want to use a fast 16-bit LCD display
+* double frame buffer costs about 300KB in ram (320*240*2 = 150KB each)
 
 It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTech/Pico-GB):
 * push buttons support
@@ -36,7 +37,7 @@ It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTec
 * I2S sound support (44.1kHz 16 bits stereo audio)
 * SD card support (store roms and save games) + game selection menu
 * automatic color palette selection for some games (emulation of Game Boy Color Bootstrap ROM) + manual color palette selection
-* PSRAM (APS6404L) is supported if your flash is smaller than your rom
+* PSRAM (APS6404L) is supported if your flash is smaller than your rom file. If you have on board psram, set ENABLE_RP2040_PSRAM=1 and select your board and maybe delete RP2350_PSRAM_CS in common.h. If you are willing to use an external psram chip, set ENABLE_EXT_PSRAM=1.
 
 # Videos by YouMakeTech
 * [Let's build a Game Boy Emulator on a Breadboard!](https://youtu.be/ThmwXpIsGWs)
@@ -62,7 +63,7 @@ It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTec
 * (1x) PCB or Breadboard
 * Dupont Wires Assorted Kit (Male to Female + Male to Male + Female to Female)
 * Preformed Breadboard Jumper Wires
-* (optional) A APS6404L is required if your flash is smaller than your rom file. Like my Pico 2 with a 2MB flash, I could only load a rom within 1MB. If you would like to load a bigger rom, you can add a APS6404 to SD card IOs with another CS pin. And modify ENABLE_PSRAM to 1, MAX_ROM_SIZE_MB to what ever depends on your flash size(1.5mb is default for 2mb).
+* (optional) A APS6404L is required if your flash is smaller than your rom file. Like my Pico 2 with a 2MB flash, I could only load a rom within 1MB. If you would like to load a bigger rom, you can add a APS6404 to SD card IOs with another CS pin. And modify ENABLE_EXT_PSRAM to 1, MAX_ROM_SIZE_MB to what ever depends on your flash size(1.5mb is default for 2mb).
 
 Last but not least: you might want a shell.
 * You might like the one from YouMakeTech: [Pico-GB 3d-printed Game Boy emulator handheld gaming console for Raspberry Pi Pico](https://www.youmaketech.com/pico-gb-gameboy-emulator-handheld-for-raspberry-pi-pico/) that ressembles to the original Nintendo Game Boy released in 1989.
@@ -90,7 +91,7 @@ You must select your pinout via the tft-espi-config/tft_setup.h (for the display
   * CSK = GP14
   * MOSI = GP15
   * MISO = GP12
-* PSRAM(APS6404L), using SPI1
+* PSRAM(APS6404L), using SPI1, NOT ON BOARD PSARM
   * CS = GP6
   * CSK = GP14
   * MOSI = GP15
@@ -115,6 +116,12 @@ As the project has to be configured to the display you want to use, there is no 
 # Building from source
 PlatformIO is required to build this project. It can be installed as an extension to Visual Studio Code.
 When PlatformIO is installed, just open the project in Visual Studio Code. It should be detected as a PlatformIO project. Now select the "pico2" environment. Then build and flash it.
+
+## pio env
+* pico: for pico and rp2040 chip. not tested.
+* pico2: for pico 2 and rp2350 chip. No psram. Copy rom file to flash directly.
+* pico2-extpsram: for pico 2 and rp2350 chip. External psram attached to SPI1(see Pinout). Copy first 1.5MB of rom file to flash and the rest to psram. External psram seems a little slow for random read byte for rom.
+* pico-psram: for pico 2 and rp2350 chip. On board psram is used. Copy whole rom file to psram(4MB max). 
 
 # Preparing the SD card
 The SD card is used to store game roms and save game progress. For this project, you will need a FAT 32 formatted Micro SD card with roms you legally own. Roms must have the .gb/.gbc extension.
