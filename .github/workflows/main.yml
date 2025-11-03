@@ -96,7 +96,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: .pio/build/pico2-nopsram/pico2-gb-psram.uf2
+          asset_path: .pio/build/pico2-psram/pico2-gb-psram.uf2
           asset_name: pico2-gb-psram.uf2
           asset_content_type: application/octet-stream
         env:

@@ -96,6 +96,8 @@ You must select your pinout via the tft-espi-config/tft_setup.h (for the display
   * CSK = GP14
   * MOSI = GP15
   * MISO = GP12
+* On-board PSRAM
+  * CS = GP6
 * LCD, using SPI0
   * SCLK = GP2
   * MOSI = GP3

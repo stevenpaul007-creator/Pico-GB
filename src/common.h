@@ -71,7 +71,7 @@ extern uint8_t _FS_end;
 
 #if ENABLE_RP2040_PSRAM
 // readme https://arduino-pico.readthedocs.io/en/latest/psram.html
-#define RP2350_PSRAM_CS   5
+#define RP2350_PSRAM_CS   6
 #endif
 
 
