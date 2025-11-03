@@ -39,9 +39,9 @@ jobs:
       - name: Build PlatformIO Project (ENABLE_EXT_PSRAM=1)
         run: |
           pio run --environment pico2-extpsram
-          UF2_FILE=$(find .pio/build/pico2 -name "*.uf2" | head -n 1)
+          UF2_FILE=$(find .pio/build/pico2-extpsram -name "*.uf2" | head -n 1)
           echo "Found UF2 file: $UF2_FILE"
-          mv "$UF2_FILE" .pio/build/pico2/pico2-gb-extpsram.uf2
+          mv "$UF2_FILE" .pio/build/pico2-extpsram/pico2-gb-extpsram.uf2
 
       - name: Build PlatformIO Project (ENABLE_EXT_PSRAM=0)
         run: |
@@ -74,7 +74,7 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: .pio/build/pico2/pico2-gb-extpsram.uf2
+          asset_path: .pio/build/pico2-extpsram/pico2-gb-extpsram.uf2
           asset_name: pico2-gb-extpsram.uf2
           asset_content_type: application/octet-stream
         env:
