@@ -27,7 +27,7 @@ jobs:
           # Use a hash of the project configuration to invalidate the cache.
           key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
           restore-keys: |
-            ${{ runner.os }}-pio-
+            ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
           
       - uses: actions/setup-python@v5
         with:
@@ -35,6 +35,11 @@ jobs:
           
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
+
+      - name: Copy Customized board files to PlatformIO
+        run: rm -fr ~/.platformio/packages/framework-arduinopico/variants/generic_rp2350_2M_PSRAM_CS0
+          cp ./customized-board/pin_arduino.h ~/.platformio/packages/framework-arduinopico/variants/generic_rp2350_2M_PSRAM_CS0/
+          cp ./customized-board/generic_rp2350_2M_PSRAM_CS0.json ~/.platformio/platforms/raspberrypi@src-330cdbbd6fda0e3245392129791aab62/boards/
 
       - name: Build PlatformIO Project (ENABLE_EXT_PSRAM=1)
         run: |
