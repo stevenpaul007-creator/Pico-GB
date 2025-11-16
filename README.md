@@ -92,12 +92,12 @@ You must select your pinout via the tft-espi-config/tft_setup.h (for the display
   * MOSI = GP15
   * MISO = GP12
 * PSRAM(APS6404L), using SPI1, NOT ON BOARD PSARM
-  * CS = GP6
+  * CS = GP0
   * CSK = GP14
   * MOSI = GP15
   * MISO = GP12
 * On-board PSRAM
-  * CS = GP6
+  * CS = GP0  See [CS (QMI CS1n) which can be used on these pins: GPIO 0, 8, 19, (47)](https://forums.raspberrypi.com/viewtopic.php?t=384076#p2295447)
 * LCD, using SPI0
   * SCLK = GP2
   * MOSI = GP3

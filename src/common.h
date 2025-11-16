@@ -63,7 +63,7 @@ extern uint8_t _FS_end;
 
 #if ENABLE_EXT_PSRAM
 #define PSRAM_SPI SPI1
-#define PSRAM_CS_PIN   6
+#define PSRAM_CS_PIN   0
 #define PSRAM_SCK_PIN  14
 #define PSRAM_MOSI_PIN 15
 #define PSRAM_MISO_PIN 12
@@ -71,7 +71,8 @@ extern uint8_t _FS_end;
 
 #if ENABLE_RP2040_PSRAM
 // readme https://arduino-pico.readthedocs.io/en/latest/psram.html
-#define RP2350_PSRAM_CS   6
+#define RP2350_PSRAM_CS   0
+#define RP2350_PSRAM_MAX_SCK_HZ (109*1000*1000)
 #endif
 
 
