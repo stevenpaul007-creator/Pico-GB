@@ -37,9 +37,9 @@ jobs:
         run: pip install --upgrade platformio
 
       - name: Copy Customized board files to PlatformIO
-        run: rm -fr ~/.platformio/packages/framework-arduinopico/variants/generic_rp2350_2M_PSRAM_CS0
-          cp ./customized-board/pin_arduino.h ~/.platformio/packages/framework-arduinopico/variants/generic_rp2350_2M_PSRAM_CS0/
-          cp ./customized-board/generic_rp2350_2M_PSRAM_CS0.json ~/.platformio/platforms/raspberrypi@src-330cdbbd6fda0e3245392129791aab62/boards/
+        run: rm -fr /home/runner/.platformio/packages/framework-arduinopico/variants/generic_rp2350_2M_PSRAM_CS0
+          cp ./customized-board/pin_arduino.h /home/runner/.platformio/packages/framework-arduinopico/variants/generic_rp2350_2M_PSRAM_CS0/
+          cp ./customized-board/generic_rp2350_2M_PSRAM_CS0.json /home/runner/.platformio/platforms/raspberrypi@src-330cdbbd6fda0e3245392129791aab62/boards/
 
       - name: Build PlatformIO Project (ENABLE_EXT_PSRAM=1)
         run: |
