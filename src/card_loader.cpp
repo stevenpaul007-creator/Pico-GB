@@ -32,7 +32,11 @@
 #define RAM_SAVENAME_LENGTH 16 + 7
 
 SdFs sd;
-struct gb_save_state_s save;
+struct gb_save_state_s save
+#ifdef ENABLE_RP2040_PSRAM
+PSRAM
+#endif
+;
 bool is_real_time_savestate_loaded = false;
 
 bool init_sdcard_hardware() {
@@ -176,6 +180,11 @@ void load_cart_rom_file_to_PSRAM(char* filename) {
 
   uint32_t offset = 0;
 
+  if (rp2040.getPSRAMSize() == 0) {
+    Serial.println("PSRAM not found or not initialized! Check platformio.ini board settings.");
+  }
+  
+  psram_rom = (uint8_t *)pmalloc(fileSize);
   while (true) {
     tft.print("#");
     if (offset >= fileSize) {
@@ -190,7 +199,30 @@ void load_cart_rom_file_to_PSRAM(char* filename) {
     if (nread == 0) {
       break;
     }
+
     memcpy(psram_rom + offset, buffer, (size_t)nread);
+
+    uint8_t retry = 0;
+    while (0!=memcmp(psram_rom + offset, buffer, (size_t)nread)) {
+      retry++;
+      if (retry >= 5) {
+        Serial.printf("E copy psram error @ %07x\r\n", offset);
+
+        for (int i = 0; i < nread; i++) {
+          if (i % 16 == 0) {
+            Serial.printf("\r\n%07x ", (offset + i));
+          }
+          Serial.printf("%02x", buffer[i]);
+          Serial.printf(buffer[i] == psram_rom[offset + i] ? " " : "-");
+          Serial.printf("%02x   ", psram_rom[offset + i]);
+        }
+
+        error("E copy psram error");
+      }
+      Serial.printf("I redo copy psram @ %07x\r\n", offset);
+      memcpy(psram_rom + offset, buffer, (size_t)nread);
+    }
+    
     /* Next sector */
     offset += FLASH_SECTOR_SIZE;
   }

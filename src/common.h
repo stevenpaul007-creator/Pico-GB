@@ -69,14 +69,6 @@ extern uint8_t _FS_end;
 #define PSRAM_MISO_PIN 12
 #endif
 
-#if ENABLE_RP2040_PSRAM
-// readme https://arduino-pico.readthedocs.io/en/latest/psram.html
-// moved to customized board
-//#define RP2350_PSRAM_CS   0
-//#define RP2350_PSRAM_MAX_SCK_HZ (109*1000*1000)
-#endif
-
-
 // display is rotated, so TFT_WIDTH/HEIGHT cannot be used
 #define DISPLAY_WIDTH TFT_HEIGHT
 #define DISPLAY_HEIGHT TFT_WIDTH

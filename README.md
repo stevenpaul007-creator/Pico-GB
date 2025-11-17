@@ -154,6 +154,7 @@ The SD card is used to store game roms and save game progress. For this project,
 * left + select = save state. To ram and SD card. Need /rtsav/ folder created first.
 * right + select = load state. From ram first or from SD card.
 * hold select + power on = flash mode
+Willing change to in-game menu.
 
 # License
 MIT

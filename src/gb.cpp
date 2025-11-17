@@ -13,7 +13,11 @@
 struct gb_s gb;
 palette_t palette; // Colour palette
 
-uint8_t ram[RAM_SIZE];
+uint8_t ram[RAM_SIZE]
+#ifdef ENABLE_RP2040_PSRAM
+PSRAM
+#endif
+;
 
 // Definition of ROM data
 #if !ENABLE_SDCARD
@@ -22,7 +26,7 @@ const uint8_t *rom = GAME_DATA;
 #else
 
 #if ENABLE_RP2040_PSRAM
-uint8_t* psram_rom = (uint8_t *)pmalloc(4 * 1024 * 1024); // 4MB max size for RP2040 PSRAM
+uint8_t* psram_rom = nullptr; 
 #endif
 
 /** Definition of ROM data
@@ -33,7 +37,11 @@ uint8_t* psram_rom = (uint8_t *)pmalloc(4 * 1024 * 1024); // 4MB max size for RP
 const uint8_t *rom = (const uint8_t *)(&_FS_start);
 #endif
 
+#if ENABLE_RP2040_PSRAM
+static unsigned char rom_bank0[1024*130];
+#else
 static unsigned char rom_bank0[1024*32];
+#endif
 
 /**
  * Returns a byte from the ROM file at the given address.
