@@ -14,6 +14,7 @@
  */
 
 #include "input.h"
+#include "ingamemenu.h"
 
 #include "common.h"
 #include "gb.h"
@@ -308,7 +309,7 @@ void handleJoypad() {
     }
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       /* select + start: save ram and resets to the game selection menu */
-      reset();
+      open_menu();
     }
     if (!gb.direct.joypad_bits.a && prev_joypad_bits.a) {
       /* select + A: enable/disable frame-skip => fast-forward */

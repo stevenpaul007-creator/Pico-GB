@@ -41,6 +41,8 @@
 #include "i2s-audio.h"
 #include "minigb_apu.h"
 
+#include "ingamemenu.h"
+
 /**
  * Global variables for audio task
  * stream contains N=AUDIO_SAMPLES samples
