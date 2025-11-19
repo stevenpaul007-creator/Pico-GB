@@ -105,7 +105,7 @@ You must select your pinout via the tft-espi-config/tft_setup.h (for the display
   * DC/RS = GP7
   * RST = GP8
   * LED = not connected, connect to 3.3V instead (could be connected to GP25 for PWM, but not implemented yet)
-* I2S Audio (MAX98357A), using PIO, by the way.
+* I2S Audio (MAX98357A), using PIO1, by the way.
   * DIN = GP9
   * BCLK = GP10
   * LRC = GP11
@@ -141,20 +141,8 @@ The SD card is used to store game roms and save game progress. For this project,
 * Use this software and instructions at your own risk! I will not be responsible in any way for any damage to your Pico and/or connected peripherals caused by using this software. I also do not take responsibility in any way when damage is caused to the Pico or display due to incorrect wiring or voltages.
 
 # In-game key combos
-* select + up = volume up
-* select + down = volume down
-* select + left = next palette
-* select + right = prev palette
-* select + start = restart (to rom list)
-* select + B = screen scale mode
-* select + A = frame skip mode and turn off sound
-* start + left = save ram (to /SAVES/)
-* start + right = load ram
-* left + start = in-game reset
-* left + select = save state. To ram and SD card. Need /rtsav/ folder created first.
-* right + select = load state. From ram first or from SD card.
+* select + start = in-game menu
 * hold select + power on = flash mode
-Willing change to in-game menu.
 
 # License
 MIT

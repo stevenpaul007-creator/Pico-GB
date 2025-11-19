@@ -1,7 +1,7 @@
 #pragma once
 
 // 菜单系统相关定义
-#define MENU_ITEMS 9
+#define MENU_ITEMS 8
 #define MENU_WIDTH TFT_HEIGHT
 #define MENU_HEIGHT TFT_WIDTH
 #define MENU_X 0

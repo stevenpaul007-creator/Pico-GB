@@ -259,6 +259,7 @@ void handleJoypad() {
   }
 #endif
 
+#if 0
   if (!gb.direct.joypad_bits.start) {
     if (!gb.direct.joypad_bits.right && prev_joypad_bits.right) {
 #if ENABLE_SDCARD
@@ -287,8 +288,11 @@ void handleJoypad() {
     }
   }
 
+#endif
   /* hotkeys (select + * combo)*/
   if (!gb.direct.joypad_bits.select) {
+    
+#if 0
 #if ENABLE_SOUND
     if (!gb.direct.joypad_bits.up && prev_joypad_bits.up) {
       /* select + up: increase sound volume */
@@ -307,15 +311,18 @@ void handleJoypad() {
       /* select + left: select the previous manual color palette */
       prevPalette();
     }
+#endif
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       /* select + start: save ram and resets to the game selection menu */
       open_menu();
     }
+#if 0
     if (!gb.direct.joypad_bits.a && prev_joypad_bits.a) {
       /* select + A: enable/disable frame-skip => fast-forward */
       gb.direct.frame_skip = !gb.direct.frame_skip;
       Serial.printf("I gb.direct.frame_skip = %d\n", gb.direct.frame_skip);
     }
+#endif
     if (!gb.direct.joypad_bits.b && prev_joypad_bits.b) {
       /* select + B: change scaling mode */
       scalingMode = (ScalingMode)(((int)scalingMode + 1) % ((int)ScalingMode::COUNT));

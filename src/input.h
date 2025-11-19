@@ -9,3 +9,4 @@ bool readJoypad(uint8_t pin);
 
 void handleJoypad();
 void handleSerial();
+void nextPalette();

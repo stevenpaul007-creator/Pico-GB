@@ -67,7 +67,7 @@ void lcd_init(bool isCore1) {
     error("Failed to initialize TFT DMA");
   }
 #endif
-  spi_init(spi0, SPI_FREQUENCY);
+  // spi_init(spi0, SPI_FREQUENCY);
 
   bool rotate = true;
 #if ENABLE_FRAMEBUFFER_FLIP_X_Y
@@ -203,6 +203,7 @@ void lcd_swap_buffers() {
 
 // Writes framebuffer to screen
 void lcd_write_framebuffer_to_screen() {
+  
   uint16_t* framebuffer = framebuffers[activeFramebufferId];
   tft.setSwapBytes(true);
 #if ENABLE_LCD_DMA
@@ -214,7 +215,7 @@ void lcd_write_framebuffer_to_screen() {
   lcd_swap_buffers();
   tft.startWrite(); // manual start required as DMA transfer is asynchronous
   tft.pushImageDMA(0, 0, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT, framebuffer);
-  //tft.endWrite(); // do not call endWrite(), as it will wait for the DMA transfer to finish, which results in no performance gain
+  // tft.endWrite(); // do not call endWrite(), as it will wait for the DMA transfer to finish, which results in no performance gain
 #else
   tft.pushImage(0, 0, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT, framebuffer);
 #endif

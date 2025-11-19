@@ -137,7 +137,7 @@ void initSound() {
   i2s_config.pio = pio1;  // 使用PIO1专门处理I2S，避免与TFT_eSPI的PIO0冲突
   Serial.printf("Using PIO%d for I2S\n", (i2s_config.pio == pio0) ? 0 : 
                                           (i2s_config.pio == pio1) ? 1 : 2);
-  i2s_volume(&i2s_config, 8);
+  i2s_volume(&i2s_config, 5);
   i2s_init(&i2s_config);
 
   Serial.println("Sound initialized");
@@ -155,7 +155,7 @@ void setup() {
   lcd_init(false);
 #endif
 
-  overclock();
+  //overclock();
 
   // Initialise USB serial connection for debugging.
   Serial.begin(115200);
@@ -183,13 +183,14 @@ void loop() {
   gb.gb_frame = 0;
 
   do {
-    __gb_step_cpu(&gb);
+    //__gb_step_cpu(&gb);
+    gb_run_frame(&gb);
     tight_loop_contents();
   } while (HEDLEY_LIKELY(gb.gb_frame == 0));
 
   frames++;
 #if ENABLE_SOUND
-  if (!gb.direct.frame_skip) {
+  if (i2s_config.volume != 16) {
     audio_callback(NULL, (int16_t*) stream, AUDIO_BUFFER_SIZE_BYTES);
     i2s_dma_write(&i2s_config, (int16_t*) stream);
   }

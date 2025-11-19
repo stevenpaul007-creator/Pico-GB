@@ -165,8 +165,8 @@
 
 // RP2040 DMA优化配置 - 双缓冲DMA通道分配
 #define RP2040_DMA
-#define RP2040_DMA_CHANNEL_0 0   // 主DMA通道
-#define RP2040_DMA_CHANNEL_1 1   // 备用DMA通道
+// #define RP2040_DMA_CHANNEL_0 0   // 主DMA通道
+// #define RP2040_DMA_CHANNEL_1 1   // 备用DMA通道
 #define RP2040_DMA_PRIORITY 0    // 最高优先级
 
 // For RP2040 processor and 8 or 16-bit parallel displays:
@@ -183,7 +183,7 @@
 //#define RP2040_PIO_CLK_DIV 2 // 64ns write cycle at 125MHz CPU clock
 //#define RP2040_PIO_CLK_DIV 3 // 96ns write cycle at 125MHz CPU clock
 
-#define RP2040_PIO_CLK_DIV 4 // ~60ns write cycle at 250MHz CPU clock
+#define RP2040_PIO_CLK_DIV 1 // ~60ns write cycle at 250MHz CPU clock
 #define TFT_SPI_PORT 0
 // For the RP2040 processor define the SPI port channel used (default 0 if undefined)
 //#define TFT_SPI_PORT 1 // Set to 0 if SPI0 pins are used, or 1 if spi1 pins used
@@ -202,13 +202,13 @@
 // #define SPI_FREQUENCY  10000000
 // #define SPI_FREQUENCY  20000000
 // #define SPI_FREQUENCY  27000000
-#define SPI_FREQUENCY  40000000
+// #define SPI_FREQUENCY  40000000
 //#define SPI_FREQUENCY  62500000
 // #define SPI_FREQUENCY  55000000 // STM32 SPI1 only (SPI2 maximum is 27MHz)
-//#define SPI_FREQUENCY  80000000  // 提高SPI频率到80MHz，RP2350支持更高频率
+#define SPI_FREQUENCY  80000000  // 提高SPI频率到80MHz，RP2350支持更高频率
 
 // Optional reduced SPI frequency for reading TFT
-#define SPI_READ_FREQUENCY  20000000
+// #define SPI_READ_FREQUENCY  20000000
 
 // The XPT2046 requires a lower SPI clock rate of 2.5MHz so we define that here:
 //#define SPI_TOUCH_FREQUENCY  2500000
