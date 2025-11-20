@@ -17,6 +17,11 @@ void write_cart_ram_file(struct gb_s* gb);
 
 void rom_file_selector();
 
+bool onNextPage();
+bool onPrevPage();
+void afterFileSelected();
+
+
 // 状态文件头部结构
 struct gb_save_state_s {
 

@@ -19,6 +19,7 @@
 
 #include "SdFat.h"
 #include "common.h"
+#include "filelistmenu.h"
 #include "gb.h"
 #include "hardware/flash.h"
 #include "input.h"
@@ -34,10 +35,14 @@
 SdFs sd;
 struct gb_save_state_s save
 #ifdef ENABLE_RP2040_PSRAM
-PSRAM
+    PSRAM
 #endif
-;
+    ;
 bool is_real_time_savestate_loaded = false;
+FileListMenu fileListMenu;
+uint16_t num_page = 0;
+uint16_t num_files;
+uint16_t total_pages = 1;
 
 bool init_sdcard_hardware() {
   SD_SPI.setMISO(SD_MISO_PIN);
@@ -183,8 +188,8 @@ void load_cart_rom_file_to_PSRAM(char* filename) {
   if (rp2040.getPSRAMSize() == 0) {
     Serial.println("PSRAM not found or not initialized! Check platformio.ini board settings.");
   }
-  
-  psram_rom = (uint8_t *)pmalloc(fileSize);
+
+  psram_rom = (uint8_t*)pmalloc(fileSize);
   while (true) {
     tft.print("#");
     if (offset >= fileSize) {
@@ -203,7 +208,7 @@ void load_cart_rom_file_to_PSRAM(char* filename) {
     memcpy(psram_rom + offset, buffer, (size_t)nread);
 
     uint8_t retry = 0;
-    while (0!=memcmp(psram_rom + offset, buffer, (size_t)nread)) {
+    while (0 != memcmp(psram_rom + offset, buffer, (size_t)nread)) {
       retry++;
       if (retry >= 5) {
         Serial.printf("E copy psram error @ %07x\r\n", offset);
@@ -222,7 +227,7 @@ void load_cart_rom_file_to_PSRAM(char* filename) {
       Serial.printf("I redo copy psram @ %07x\r\n", offset);
       memcpy(psram_rom + offset, buffer, (size_t)nread);
     }
-    
+
     /* Next sector */
     offset += FLASH_SECTOR_SIZE;
   }
@@ -387,29 +392,16 @@ static uint16_t read_file_page_from_card(char filename[FILES_PER_PAGE][MAX_PATH_
   return num_files % FILES_PER_PAGE;
 }
 
-void print_file_entry(char* s, uint8_t index, uint8_t num_files, bool selected = false) {
-  if (num_files == 0) {
-    const char* no_files = "<No files on card>";
-    tft.drawString(no_files, ERROR_TEXT_OFFSET, index * FONT_HEIGHT, FONT_ID);
-    return;
-  }
-
-  tft.setTextColor(TFT_WHITE, selected ? TFT_RED : TFT_BLACK);
-  tft.drawString(s, 0, index * FONT_HEIGHT, FONT_ID);
-}
-
 /**
  * Function used by the rom file selector to display one page of .gb rom files
  */
-static uint16_t rom_file_selector_display_page(char filename[FILES_PER_PAGE][MAX_PATH_LENGTH], uint16_t num_page) {
+static uint16_t rom_file_selector_display_page(uint16_t num_page) {
+  char filename[FILES_PER_PAGE][MAX_PATH_LENGTH];
   uint16_t num_files = read_file_page_from_card(filename, num_page);
 
-  /* display *.gb rom files on screen */
-  tft.fillScreen(TFT_BLACK);
   for (uint8_t ifile = 0; ifile < num_files; ifile++) {
-    print_file_entry(filename[ifile], ifile, num_files);
+    fileListMenu.setTextAtIndex(filename[ifile], ifile);
   }
-
   return num_files;
 }
 
@@ -419,102 +411,49 @@ static uint16_t rom_file_selector_display_page(char filename[FILES_PER_PAGE][MAX
  * Copy your *.gb rom files to the root directory of the SD card
  */
 void rom_file_selector() {
-  uint16_t num_page = 0;
-  char filename[FILES_PER_PAGE][MAX_PATH_LENGTH];
-  uint16_t num_files;
-  uint16_t total_pages = 1;
-
   /* display the first page with up to FILES_PER_PAGE rom files */
-  num_files = rom_file_selector_display_page(filename, num_page);
+  num_files = rom_file_selector_display_page(num_page);
 
-  /* select the first rom */
-  uint8_t selected = 0;
-  print_file_entry(filename[selected], selected, num_files, true);
+  fileListMenu.setOnNextPage(&onNextPage);
+  fileListMenu.setOnPrevPage(&onPrevPage);
+  fileListMenu.setAfterFileSelected(&afterFileSelected);
+  fileListMenu.openMenu();
+}
 
-  /* get user's input */
-  bool up, down, left, right, a, b, select, start;
-  while (true) {
-    up = readJoypad(PIN_UP);
-    down = readJoypad(PIN_DOWN);
-    left = readJoypad(PIN_LEFT);
-    right = readJoypad(PIN_RIGHT);
-    a = readJoypad(PIN_A);
-    b = readJoypad(PIN_B);
-    select = readJoypad(PIN_SELECT);
-    start = readJoypad(PIN_START);
-
-    if (!start && !select) {
-      reset();
-    }
-    if (!start) {
-      /* re-start the last game (no need to reprogram flash) */
-#if ENABLE_RP2040_PSRAM      
-      load_cart_rom_file_to_PSRAM(filename[selected]);
-#elif ENABLE_EXT_PSRAM
-      load_cart_rom_file_to_rom_and_PSRAM(filename[selected]);
-#endif
-      break;
-    }
-    if (!a | !b) {
-      /* copy the rom from the SD card to flash or PSRAM and start the game */
-#if ENABLE_RP2040_PSRAM      
-      load_cart_rom_file_to_PSRAM(filename[selected]);
-#elif ENABLE_EXT_PSRAM
-      load_cart_rom_file_to_rom_and_PSRAM(filename[selected]);
-#else
-      load_cart_rom_file(filename[selected]);
-#endif
-      break;
-    }
-    if (!down) {
-      /* select the next rom */
-      print_file_entry(filename[selected], selected, num_files);
-      selected++;
-      if (selected >= num_files)
-        selected = 0;
-      print_file_entry(filename[selected], selected, num_files, true);
-      sleep_ms(200);
-    }
-    if (!up) {
-      /* select the previous rom */
-      print_file_entry(filename[selected], selected, num_files);
-      if (selected == 0) {
-        selected = num_files - 1;
-      } else {
-        selected--;
-      }
-      print_file_entry(filename[selected], selected, num_files, true);
-      sleep_ms(200);
-    }
-    if (!right) {
-      /* select the next page */
-      if (num_files < FILES_PER_PAGE) {
-        /* no more pages */
-        continue;
-      }
-      num_page++;
-      num_files = rom_file_selector_display_page(filename, num_page);
-      if (num_files == 0) {
-        /* no files in this page, go to the previous page */
-        num_page--;
-        num_files = rom_file_selector_display_page(filename, num_page);
-      }
-      /* select the first file */
-      selected = 0;
-      print_file_entry(filename[selected], selected, num_files, true);
-      sleep_ms(200);
-    }
-    if ((!left) && num_page > 0) {
-      /* select the previous page */
-      num_page--;
-      num_files = rom_file_selector_display_page(filename, num_page);
-      /* select the first file */
-      selected = 0;
-      print_file_entry(filename[selected], selected, num_files, true);
-      sleep_ms(200);
-    }
-    tight_loop_contents();
+bool onNextPage() {
+  /* select the next page */
+  if (num_files < FILES_PER_PAGE) {
+    /* no more pages */
+    return false;
   }
+  fileListMenu.clearMenu();
+  num_page++;
+  num_files = rom_file_selector_display_page(num_page);
+  if (num_files == 0) {
+    num_page--;
+    num_files = rom_file_selector_display_page(num_page);
+  }
+  return true;
+}
+bool onPrevPage() {
+  if (num_page <= 0) {
+    return false;
+  }
+  fileListMenu.clearMenu();
+  /* select the previous page */
+  num_page--;
+  num_files = rom_file_selector_display_page(num_page);
+  return true;
+}
+void afterFileSelected() {
+  /* copy the rom from the SD card to flash or PSRAM and start the game */
+#if ENABLE_RP2040_PSRAM
+  load_cart_rom_file_to_PSRAM(fileListMenu.getSelectedText());
+#elif ENABLE_EXT_PSRAM
+  load_cart_rom_file_to_rom_and_PSRAM(fileListMenu.getSelectedText());
+#else
+  load_cart_rom_file(fileListMenu.getSelectedText());
+#endif
 }
 
 void save_state(struct gb_s* gb) {
@@ -562,7 +501,7 @@ void save_state(struct gb_s* gb) {
 
   Serial.println("I save_state done");
   is_real_time_savestate_loaded = true;
-  
+
   char filename[RAM_SAVENAME_LENGTH];
   uint_fast32_t save_size;
   FsFile file;
@@ -571,7 +510,7 @@ void save_state(struct gb_s* gb) {
 
   String f = String("rtsav/");
   f.concat(filename);
-  f.toCharArray(filename,RAM_SAVENAME_LENGTH);
+  f.toCharArray(filename, RAM_SAVENAME_LENGTH);
   Serial.printf("I f_open(%s) \r\n", filename);
 
   save_size = sizeof(save);

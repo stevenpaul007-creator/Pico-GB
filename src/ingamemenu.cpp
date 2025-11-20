@@ -1,5 +1,3 @@
-
-#include <stdint.h>
 #include "ingamemenu.h"
 
 #include "card_loader.h"
@@ -13,146 +11,74 @@
 extern i2s_config_t i2s_config;
 #endif
 
-#define BAT_CONV_FACTOR  (3.3f / (1 << 10) * 3)
-// 全局变量
-static uint8_t current_menu_selection = 0;
-static bool menu_active = false;
-static uint8_t color_scheme = 0; // 当前配色方案
-uint8_t vsysPercent = 0;
-uint8_t batteryLevel = 0;
-
-void measure_battery() {
-  analogReadResolution(10);
-  uint16_t rawADC = analogRead(A3); // Read from ADC3 (GPIO29 is mapped to A3 in Arduino)
-  delay(5);
-  rawADC = analogRead(A3);
-  delay(5);
-  float vsysVoltage = rawADC * BAT_CONV_FACTOR;
-  uint8_t vsysPercent = map(vsysVoltage, 2.0f, 4.2f, 0, 100);
-  batteryLevel = map(vsysPercent, 0, 100, 0, 3);
-  Serial.printf("I Battary = %0.2fv %d%% level=%d\r\n", vsysVoltage, vsysPercent, batteryLevel);
+GameMenu::GameMenu() : Menu() {
+  setWidth(DISPLAY_WIDTH);
+  setHeight(DISPLAY_HEIGHT);
 }
 
-// 绘制电池图标的函数
-void drawBatteryIcon() {
-    int x = tft.width() - 30; // 放置在右上角，距离右边缘 40 像素
-    int y = 5;                 // 距离顶边缘 5 像素
-    int w = 24;                // 电池宽度
-    int h = 12;                // 电池高度
+// 菜单项枚举
+enum MenuItem {
+  MENU_VOLUME = 0,
+  MENU_SAVE,
+  MENU_LOAD,
+  MENU_SAVERAM,
+  MENU_LOADRAM,
+  MENU_COLOR_SCHEME,
+  MENU_BACK_TO_GAME_LIST,
+  MENU_RESTARTGAME,
+  COUNT // 用于方便计算菜单项数量
+};
 
-    // 1. 清除旧图标区域（如果需要，或者直接覆盖）
-    tft.fillRect(x, y, w, h, TFT_BLACK); 
-
-    // 2. 绘制电池外壳
-    tft.drawRect(x, y, w, h, TFT_WHITE);
-
-    // 3. 填充电量格
-    int numBars = batteryLevel; // batteryLevel 应为 0, 1, 2 或 3
-    int barSpacing = 2;
-    int barWidth = (w - (4 * barSpacing)) / 3; // 三格的宽度
-
-    for (int i = 0; i < numBars; i++) {
-        int barX = x + barSpacing + i * (barWidth + barSpacing);
-        int barY = y + barSpacing;
-        int barH = h - (2 * barSpacing);
-        
-        // 使用绿色表示电量充足，低电量时可以使用红色
-        uint16_t barColor = (batteryLevel <= 1) ? TFT_RED : TFT_GREEN;
-        tft.fillRect(barX, barY, barWidth, barH, barColor);
-    }
-}
-// 绘制弹出菜单背景
-void draw_menu_background() {
-  // 保存当前游戏区域（简单实现，实际可能需要更复杂的保存机制）
-  // 这里绘制半透明背景来模拟弹出效果
-  tft.fillRect(MENU_X, MENU_Y, MENU_WIDTH, MENU_HEIGHT, TFT_DARKGREY);
-  tft.drawRect(MENU_X, MENU_Y, MENU_WIDTH, MENU_HEIGHT, TFT_WHITE);
-  tft.drawRect(MENU_X + 1, MENU_Y + 1, MENU_WIDTH - 1, MENU_HEIGHT - 1, TFT_WHITE);
-
-  // 菜单标题
-  tft.setTextColor(TFT_YELLOW, TFT_DARKGREY);
-  tft.drawString("SYSTEM MENU", MENU_X + 10, MENU_Y + 5, FONT_ID);
-  tft.drawLine(MENU_X, MENU_Y + 25, MENU_X + MENU_WIDTH, MENU_Y + 25, TFT_WHITE);
-  drawBatteryIcon();
-}
-
-// 绘制菜单项（复用您的样式）
-void draw_menu_item(const char* text, uint8_t index) {
-  bool selected = current_menu_selection == index;
-  uint16_t y_pos = MENU_Y + 30 + index * FONT_HEIGHT;
-
-  tft.setTextColor(selected ? TFT_BLACK : TFT_WHITE,
-      selected ? TFT_RED : TFT_DARKGREY, true);
-  tft.drawString(text, MENU_X + 10, y_pos, FONT_ID);
-  delay(10);
-}
-
+uint8_t MENU_ITEMS = static_cast<int>(MenuItem::COUNT);
 // 显示音量值
-void draw_volume_value() {
+void GameMenu::setVolumeItem() {
   char vol_text[20];
   if (i2s_config.volume == 16) {
-    snprintf(vol_text, sizeof(vol_text), "Volume:    OFF");
+    snprintf(vol_text, sizeof(vol_text), " Volume:    OFF ");
   } else {
-    snprintf(vol_text, sizeof(vol_text), "Volume: %2d/16", 16 - i2s_config.volume);
+    snprintf(vol_text, sizeof(vol_text), " Volume: %2d/16 ", 16 - i2s_config.volume);
   }
-  draw_menu_item(vol_text, MENU_VOLUME);
-}
-
-// 绘制完整菜单
-void draw_menu() {
-  // 绘制各个菜单项
-  draw_volume_value();
-  draw_menu_item("Save Realtime Game", MENU_SAVE);
-  draw_menu_item("Load Realtime Game", MENU_LOAD);
-  draw_menu_item("Save RAM", MENU_SAVERAM);
-  draw_menu_item("Load RAM", MENU_LOADRAM);
-  draw_menu_item("Next Color Palette", MENU_COLOR_SCHEME);
-  draw_menu_item("Back to Game List", MENU_BACK_TO_GAME_LIST);
-  draw_menu_item("Restart Game", MENU_RESTART_GAME);
-
-  // 绘制操作提示
-  tft.setTextColor(TFT_CYAN, TFT_DARKGREY);
-  tft.drawString("A: Select     B: Back", MENU_X + 55, MENU_Y + MENU_HEIGHT - 30, 4);
+  setTextAtIndex(vol_text, MENU_VOLUME);
 }
 
 // 应用配色方案
-void apply_color_scheme() {
+void GameMenu::applyColorScheme() {
   nextPalette();
 }
 
 // 处理菜单项选择
-void handle_menu_selection() {
-  switch (current_menu_selection) {
+void GameMenu::handleMenuSelection() {
+  switch (currentMenuSelection) {
   case MENU_COLOR_SCHEME:
-    apply_color_scheme();
+    applyColorScheme();
     break;
 
   case MENU_SAVE:
     // 执行保存游戏操作
-    save_realtime_game();
+    saveRealtimeGame();
     break;
 
   case MENU_LOAD:
     // 执行读取游戏操作
-    load_realtime_game();
+    loadRealtimeGame();
     break;
 
   case MENU_SAVERAM:
-    save_ram();
+    saveRam();
     break;
 
   case MENU_LOADRAM:
-    load_ram();
+    loadRam();
     break;
 
   case MENU_BACK_TO_GAME_LIST:
     // 系统重启
-    reboot_system();
+    rebootSystem();
     break;
 
-  case MENU_RESTART_GAME:
+  case MENU_RESTARTGAME:
     // 系统重启
-    restart_game();
+    restartGame();
     return;
     break;
 
@@ -163,132 +89,109 @@ void handle_menu_selection() {
 }
 
 // 保存游戏（需要您实现具体逻辑）
-void save_realtime_game() {
+void GameMenu::saveRealtimeGame() {
   // 显示保存提示
   save_state(&gb);
   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("Game Saved!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 50, FONT_ID);
+  tft.drawString("Game Saved!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
   delay(1000);
-  //draw_menu(); // 重新绘制菜单清除提示
+  // drawMenuItems(); // 重新绘制菜单清除提示
 }
 
 // 读取游戏（需要您实现具体逻辑）
-void load_realtime_game() {
+void GameMenu::loadRealtimeGame() {
   // 显示读取提示
   load_state(&gb);
   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("Game Loaded!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 50, FONT_ID);
+  tft.drawString("Game Loaded!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
   delay(1000);
-  //draw_menu(); // 重新绘制菜单清除提示
+  // drawMenuItems(); // 重新绘制菜单清除提示
 }
 
-void save_ram() {
+void GameMenu::saveRam() {
   write_cart_ram_file(&gb);
   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("RAM Saved!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 50, FONT_ID);
+  tft.drawString("RAM Saved!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
   delay(1000);
-  //draw_menu(); // 重新绘制菜单清除提示
+  // drawMenuItems(); // 重新绘制菜单清除提示
 }
-void load_ram() {
+void GameMenu::loadRam() {
   read_cart_ram_file(&gb);
   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("RAM Loaded!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 50, FONT_ID);
+  tft.drawString("RAM Loaded!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
   delay(1000);
-  //draw_menu(); // 重新绘制菜单清除提示
+  // drawMenuItems(); // 重新绘制菜单清除提示
 }
 
 // 返回主菜单（需要您实现具体逻辑）
-void return_to_main_menu() {
-  // close_menu();
+void GameMenu::returnToMainMenu() {
+  // closeMenu();
   //  这里添加返回主菜单的代码
 }
-void restart_game() {
+void GameMenu::restartGame() {
   gb_reset();
 }
 
 // 系统重启（需要您实现具体逻辑）
-void reboot_system() {
+void GameMenu::rebootSystem() {
   rp2040.reboot();
 }
 
-// 打开菜单
-void open_menu() {
-  menu_active = true;
-  current_menu_selection = 0;
-  Serial.println("I open in game menu.");
-  tft.setRotation(3);
-  measure_battery();
-  draw_menu_background();
-  draw_menu();
-  handle_menu_input(0); // this is a loop
-  close_menu();
-}
-
 // 关闭菜单
-void close_menu() {
-  menu_active = false;
+void GameMenu::onCloseMenu() {
+  menuActive = false;
   delay(400);
   tft.setRotation(2);
 }
 
-// 检查菜单是否激活
-bool is_menu_active() {
-  return menu_active;
+void GameMenu::openMenu() {
+  menuActive = true;
+  setTitle("IN GAME MENU");
+  setVolumeItem();
+  setTextAtIndex(" Save Realtime Game ", MENU_SAVE);
+  setTextAtIndex(" Load Realtime Game ", MENU_LOAD);
+  setTextAtIndex(" Save RAM ", MENU_SAVERAM);
+  setTextAtIndex(" Load RAM ", MENU_LOADRAM);
+  setTextAtIndex(" Next Color Palette ", MENU_COLOR_SCHEME);
+  setTextAtIndex(" Back to Game List ", MENU_BACK_TO_GAME_LIST);
+  setTextAtIndex(" Restart Game ", MENU_RESTARTGAME);
+
+  Menu::openMenu();
 }
 
-// 处理菜单输入
-void handle_menu_input(uint8_t button) {
-
-  bool up, down, left, right, a, b, select, start;
-  while (true) {
-    up = readJoypad(PIN_UP);
-    down = readJoypad(PIN_DOWN);
-    left = readJoypad(PIN_LEFT);
-    right = readJoypad(PIN_RIGHT);
-    a = readJoypad(PIN_A);
-    b = readJoypad(PIN_B);
-    select = readJoypad(PIN_SELECT);
-    start = readJoypad(PIN_START);
-
-    if (!select && !b) {
-      rp2040.rebootToBootloader();
-    }
-    // up
-    if (!up) {
-      current_menu_selection = (current_menu_selection == 0) ? MENU_ITEMS - 1 : current_menu_selection - 1;
-      draw_menu();
-    }
-    if (!down) {
-      current_menu_selection = (current_menu_selection == MENU_ITEMS - 1) ? 0 : current_menu_selection + 1;
-      draw_menu();
-    }
-    if (!left) {
-      if (current_menu_selection == MENU_VOLUME) {
-        i2s_decrease_volume(&i2s_config);
-        draw_volume_value();
-      }
-    }
-    if (!right) {
-      if (current_menu_selection == MENU_VOLUME) {
-        i2s_increase_volume(&i2s_config);
-        draw_volume_value();
-      }
-    }
-    if (!a) {
-      handle_menu_selection();
-      return;
-    }
-    if (!b) {
-      return;
-    }
-    if (!up || !down || !left || !right) {
-      sleep_ms(200);
+bool GameMenu::onKeyDown() {
+  if (!select && !b) {
+    rp2040.rebootToBootloader();
+  }
+  // up
+  if (!up) {
+    currentMenuSelection = (currentMenuSelection == 0) ? MENU_ITEMS - 1 : currentMenuSelection - 1;
+    drawMenuItems();
+  }
+  if (!down) {
+    currentMenuSelection = (currentMenuSelection == MENU_ITEMS - 1) ? 0 : currentMenuSelection + 1;
+    drawMenuItems();
+  }
+  if (!left) {
+    if (currentMenuSelection == MENU_VOLUME) {
+      i2s_decrease_volume(&i2s_config);
+      setVolumeItem();
+      drawMenuItem(_lines[MENU_VOLUME], MENU_VOLUME);
     }
   }
-}
-// 在主循环中调用这个函数来处理菜单
-void update_menu_system(uint8_t button_press) {
-  if (menu_active) {
-    handle_menu_input(button_press);
+  if (!right) {
+    if (currentMenuSelection == MENU_VOLUME) {
+      i2s_increase_volume(&i2s_config);
+      setVolumeItem();
+      drawMenuItem(_lines[MENU_VOLUME], MENU_VOLUME);
+    }
   }
+  if (!a) {
+    handleMenuSelection();
+    return true;
+  }
+  if (!b) {
+    return true;
+  }
+  return false;
 }

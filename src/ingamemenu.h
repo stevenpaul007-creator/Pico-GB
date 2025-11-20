@@ -1,39 +1,28 @@
 #pragma once
+#include "menu.h"
 
-// 菜单系统相关定义
-#define MENU_ITEMS 8
-#define MENU_WIDTH TFT_HEIGHT
-#define MENU_HEIGHT TFT_WIDTH
-#define MENU_X 0
-#define MENU_Y 0
+#include <stdint.h>
 
-// 菜单项枚举
-typedef enum {
-  MENU_VOLUME = 0,
-  MENU_SAVE,
-  MENU_LOAD,
-  MENU_SAVERAM,
-  MENU_LOADRAM,
-  MENU_COLOR_SCHEME,
-  MENU_BACK_TO_GAME_LIST,
-  MENU_RESTART_GAME
-} menu_item_t;
+class GameMenu : public Menu {
+public:
+  GameMenu();
+  /**
+   * true: break loop
+   */
+  bool onKeyDown() override;
+  void onCloseMenu() override;
+  void openMenu() override;
+  void handleMenuSelection() override;
 
-void open_menu();
-void close_menu();
-bool is_menu_active();
-void handle_menu_selection();
-void apply_color_scheme();
-void handle_menu_input(uint8_t button);
-void update_menu_system(uint8_t button_press);
-
-void save_realtime_game();
-void load_realtime_game();
-void save_ram();
-void load_ram();
-void restart_game();
-
-
-void return_to_main_menu();
-
-void reboot_system();
+private:
+  // 私有辅助函数
+  void setVolumeItem();
+  void applyColorScheme();
+  void saveRealtimeGame();
+  void loadRealtimeGame();
+  void saveRam();
+  void loadRam();
+  void restartGame();
+  void returnToMainMenu();
+  void rebootSystem();
+};

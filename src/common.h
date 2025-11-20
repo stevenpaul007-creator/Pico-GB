@@ -73,7 +73,7 @@ extern uint8_t _FS_end;
 #define DISPLAY_WIDTH TFT_HEIGHT
 #define DISPLAY_HEIGHT TFT_WIDTH
 
-#define FILES_PER_PAGE 15
+#define FILES_PER_PAGE 13
 #define FONT_HEIGHT 16
 #define ERROR_TEXT_OFFSET FONT_HEIGHT
 #define FONT_ID 2

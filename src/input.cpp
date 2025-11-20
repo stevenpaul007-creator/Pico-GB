@@ -32,6 +32,8 @@ extern uint8_t gamma_int;
 
 static uint8_t palette_selected = 0;
 
+GameMenu myMenu; // 创建菜单实例
+
 static struct
 {
   unsigned a : 1;
@@ -314,7 +316,7 @@ void handleJoypad() {
 #endif
     if (!gb.direct.joypad_bits.start && prev_joypad_bits.start) {
       /* select + start: save ram and resets to the game selection menu */
-      open_menu();
+      myMenu.openMenu();
     }
 #if 0
     if (!gb.direct.joypad_bits.a && prev_joypad_bits.a) {
