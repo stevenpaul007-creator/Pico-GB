@@ -30,9 +30,16 @@ void FileListMenu::setAfterFileSelected(void (*afterFileSelected)()) {
 
 void FileListMenu::openMenu() {
   menuActive = true;
-  setTitle("GAME LIST");
+  makeTitle();
   tft.fillScreen(TFT_BLACK);
   Menu::openMenu();
+}
+
+void FileListMenu::makeTitle() {
+  char title_text[25];
+  snprintf(title_text, sizeof(title_text), "GAME LIST  PAGE %d", _currentPage);
+  setTitle(title_text);
+  Serial.println(getTitle());
 }
 
 bool FileListMenu::onKeyDown() {
@@ -51,6 +58,8 @@ bool FileListMenu::onKeyDown() {
   if (!left) {
     if (_onPrevPage) {
       if (_onPrevPage()) {
+        _currentPage--;
+        makeTitle();
         currentMenuSelection = 0;
         drawMenuBackground();
         drawMenuItems();
@@ -60,6 +69,8 @@ bool FileListMenu::onKeyDown() {
   if (!right) {
     if (_onNextPage) {
       if (_onNextPage()) {
+        _currentPage++;
+        makeTitle();
         currentMenuSelection = 0;
         drawMenuBackground();
         drawMenuItems();

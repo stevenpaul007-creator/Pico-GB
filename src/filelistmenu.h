@@ -19,4 +19,8 @@ private:
   bool (*_onNextPage)();
   bool (*_onPrevPage)();
   void (*_afterFileSelected)();
+  void makeTitle();
+
+protected:
+  uint8_t _currentPage = 1;
 };

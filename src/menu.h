@@ -44,6 +44,6 @@ protected:
   uint16_t _menuX = 0;
   uint16_t _menuY = 0;
   uint8_t _menuCount = 0;
-  const char* _title;
+  char* _title;
   char* _lines[14];
 };

@@ -38,7 +38,15 @@ bool Menu::onKeyDown() {
 }
 
 void Menu::setTitle(const char* title) {
-  _title = title;
+  // 1. 释放旧的标题内存（防止内存泄漏）
+  if (_title != nullptr) {
+    free(_title);
+    _title = nullptr;
+  }
+
+  // 2. 使用 strdup 复制新的字符串内容
+  // strdup 会在堆上分配内存并复制字符串
+  _title = strdup(title);
 }
 const char* Menu::getTitle() {
   return _title;
@@ -64,8 +72,10 @@ void Menu::setTextAtIndex(const char* text, uint8_t index) {
   _lines[index] = strdup(text);
 }
 void Menu::drawMenuItems() {
-#define MAX_CHARS_PER_LINE 45
   for (uint8_t index = 0; index < _menuCount; index++) {
+    drawMenuItem(_lines[index], index);
+#if 0
+#define MAX_CHARS_PER_LINE 45
     if (strlen(_lines[index]) < MAX_CHARS_PER_LINE) {
       drawMenuItem(_lines[index], index);
     } else {
@@ -82,6 +92,7 @@ void Menu::drawMenuItems() {
       new_str[len_to_copy] = '\0'; // 确保字符串以空字符结尾
       drawMenuItem(new_str, index);
     }
+#endif
   }
 }
 void Menu::drawMenuItem(const char* text, uint8_t index) {
