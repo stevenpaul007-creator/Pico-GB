@@ -47,6 +47,30 @@ struct gb_save_state_s {
 	uint8_t oam[OAM_SIZE];
 	uint8_t hram_io[HRAM_IO_SIZE];
 	
+#if PEANUT_FULL_GBC_SUPPORT
+	/* Game Boy Color Mode*/
+	struct {
+		uint8_t cgbMode;
+		uint8_t doubleSpeed;
+		uint8_t doubleSpeedPrep;
+		uint8_t wramBank;
+		uint16_t wramBankOffset;
+		uint8_t vramBank;
+		uint16_t vramBankOffset;
+		uint16_t fixPalette[0x40];  //BG then OAM palettes fixed for the screen
+		uint8_t OAMPalette[0x40];
+		uint8_t BGPalette[0x40];
+		uint8_t OAMPaletteID;
+		uint8_t BGPaletteID;
+		uint8_t OAMPaletteInc;
+		uint8_t BGPaletteInc;
+		uint8_t dmaActive;
+		uint8_t dmaMode;
+		uint8_t dmaSize;
+		uint16_t dmaSource;
+		uint16_t dmaDest;
+	} cgb;
+#endif
 };
 
 void save_state(struct gb_s* gb);

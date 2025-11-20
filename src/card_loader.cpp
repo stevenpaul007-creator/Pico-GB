@@ -536,6 +536,30 @@ void save_state(struct gb_s* gb) {
   memcpy(save.vram, gb->vram, VRAM_SIZE);
   memcpy(save.oam, gb->oam, OAM_SIZE);
   memcpy(save.hram_io, gb->hram_io, HRAM_IO_SIZE);
+
+#if PEANUT_FULL_GBC_SUPPORT
+  save.cgb.cgbMode = gb->cgb.cgbMode;
+  save.cgb.doubleSpeed = gb->cgb.doubleSpeed;
+  save.cgb.doubleSpeedPrep = gb->cgb.doubleSpeedPrep;
+  save.cgb.wramBank = gb->cgb.wramBank;
+  save.cgb.wramBankOffset = gb->cgb.wramBankOffset;
+  save.cgb.vramBank = gb->cgb.vramBank;
+  save.cgb.vramBankOffset = gb->cgb.vramBankOffset;
+  save.cgb.OAMPaletteID = gb->cgb.OAMPaletteID;
+  save.cgb.BGPaletteID = gb->cgb.BGPaletteID;
+  save.cgb.OAMPaletteInc = gb->cgb.OAMPaletteInc;
+  save.cgb.BGPaletteInc = gb->cgb.BGPaletteInc;
+  save.cgb.dmaActive = gb->cgb.dmaActive;
+  save.cgb.dmaMode = gb->cgb.dmaMode;
+  save.cgb.dmaSize = gb->cgb.dmaSize;
+  save.cgb.dmaSource = gb->cgb.dmaSource;
+  save.cgb.dmaDest = gb->cgb.dmaDest;
+  memcpy(save.cgb.fixPalette, gb->cgb.fixPalette, sizeof(gb->cgb.fixPalette));
+  memcpy(save.cgb.OAMPalette, gb->cgb.OAMPalette, sizeof(gb->cgb.OAMPalette));
+  memcpy(save.cgb.BGPalette, gb->cgb.BGPalette, sizeof(gb->cgb.BGPalette));
+
+#endif
+
   Serial.println("I save_state done");
   is_real_time_savestate_loaded = true;
   
@@ -613,7 +637,28 @@ void load_state(struct gb_s* gb) {
   memcpy(gb->vram, save.vram, VRAM_SIZE);
   memcpy(gb->oam, save.oam, OAM_SIZE);
   memcpy(gb->hram_io, save.hram_io, HRAM_IO_SIZE);
+#if PEANUT_FULL_GBC_SUPPORT
+  gb->cgb.cgbMode = save.cgb.cgbMode;
+  gb->cgb.doubleSpeed = save.cgb.doubleSpeed;
+  gb->cgb.doubleSpeedPrep = save.cgb.doubleSpeedPrep;
+  gb->cgb.wramBank = save.cgb.wramBank;
+  gb->cgb.wramBankOffset = save.cgb.wramBankOffset;
+  gb->cgb.vramBank = save.cgb.vramBank;
+  gb->cgb.vramBankOffset = save.cgb.vramBankOffset;
+  gb->cgb.OAMPaletteID = save.cgb.OAMPaletteID;
+  gb->cgb.BGPaletteID = save.cgb.BGPaletteID;
+  gb->cgb.OAMPaletteInc = save.cgb.OAMPaletteInc;
+  gb->cgb.BGPaletteInc = save.cgb.BGPaletteInc;
+  gb->cgb.dmaActive = save.cgb.dmaActive;
+  gb->cgb.dmaMode = save.cgb.dmaMode;
+  gb->cgb.dmaSize = save.cgb.dmaSize;
+  gb->cgb.dmaSource = save.cgb.dmaSource;
+  gb->cgb.dmaDest = save.cgb.dmaDest;
+  memcpy(gb->cgb.fixPalette, save.cgb.fixPalette, sizeof(save.cgb.fixPalette));
+  memcpy(gb->cgb.OAMPalette, save.cgb.OAMPalette, sizeof(save.cgb.OAMPalette));
+  memcpy(gb->cgb.BGPalette, save.cgb.BGPalette, sizeof(save.cgb.BGPalette));
 
+#endif
   Serial.println("I load_state loaded");
 }
 
