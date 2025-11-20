@@ -138,9 +138,9 @@ void save_realtime_game() {
   // 显示保存提示
   save_state(&gb);
   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("Game Saved!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 30, FONT_ID);
+  tft.drawString("Game Saved!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 50, FONT_ID);
   delay(1000);
-  draw_menu(); // 重新绘制菜单清除提示
+  //draw_menu(); // 重新绘制菜单清除提示
 }
 
 // 读取游戏（需要您实现具体逻辑）
@@ -148,24 +148,24 @@ void load_realtime_game() {
   // 显示读取提示
   load_state(&gb);
   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("Game Loaded!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 30, FONT_ID);
+  tft.drawString("Game Loaded!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 50, FONT_ID);
   delay(1000);
-  draw_menu(); // 重新绘制菜单清除提示
+  //draw_menu(); // 重新绘制菜单清除提示
 }
 
 void save_ram() {
   write_cart_ram_file(&gb);
   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("RAM Saved!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 30, FONT_ID);
+  tft.drawString("RAM Saved!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 50, FONT_ID);
   delay(1000);
-  draw_menu(); // 重新绘制菜单清除提示
+  //draw_menu(); // 重新绘制菜单清除提示
 }
 void load_ram() {
   read_cart_ram_file(&gb);
   tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("RAM Loaded!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 30, FONT_ID);
+  tft.drawString("RAM Loaded!", MENU_X + 45, MENU_Y + MENU_HEIGHT - 50, FONT_ID);
   delay(1000);
-  draw_menu(); // 重新绘制菜单清除提示
+  //draw_menu(); // 重新绘制菜单清除提示
 }
 
 // 返回主菜单（需要您实现具体逻辑）
@@ -179,7 +179,7 @@ void restart_game() {
 
 // 系统重启（需要您实现具体逻辑）
 void reboot_system() {
-  reset();
+  rp2040.reboot();
 }
 
 // 打开菜单
@@ -198,8 +198,8 @@ void open_menu() {
 // 关闭菜单
 void close_menu() {
   menu_active = false;
+  delay(400);
   tft.setRotation(2);
-  delay(200);
 }
 
 // 检查菜单是否激活

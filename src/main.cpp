@@ -135,8 +135,6 @@ void initSound() {
 	i2s_config.clock_pin_base = I2S_BCLK_LRC_PIN_BASE;
   // 尝试使用PIO1，如果失败则使用PIO2
   i2s_config.pio = pio1;  // 使用PIO1专门处理I2S，避免与TFT_eSPI的PIO0冲突
-  Serial.printf("Using PIO%d for I2S\n", (i2s_config.pio == pio0) ? 0 : 
-                                          (i2s_config.pio == pio1) ? 1 : 2);
   i2s_volume(&i2s_config, 5);
   i2s_init(&i2s_config);
 
@@ -155,7 +153,7 @@ void setup() {
   lcd_init(false);
 #endif
 
-  //overclock();
+  overclock();
 
   // Initialise USB serial connection for debugging.
   Serial.begin(115200);

@@ -66,7 +66,7 @@ void i2s_init(i2s_config_t *i2s_config) {
     
     /* Set PIO clock */
     uint32_t system_clock_frequency = clock_get_hz(clk_sys);
-    uint32_t divider = system_clock_frequency * 8 / i2s_config->sample_freq; // avoid arithmetic overflow
+    uint32_t divider = system_clock_frequency * 4 / i2s_config->sample_freq; // avoid arithmetic overflow
     pio_sm_set_clkdiv_int_frac(i2s_config->pio, i2s_config->sm , divider >> 8u, divider & 0xffu);
 
     pio_sm_set_enabled(i2s_config->pio, i2s_config->sm, false);
@@ -82,6 +82,10 @@ void i2s_init(i2s_config_t *i2s_config) {
     channel_config_set_write_increment(&dma_config, false);
     channel_config_set_dreq(&dma_config, pio_get_dreq(i2s_config->pio, i2s_config->sm, true));
     channel_config_set_transfer_data_size(&dma_config, DMA_SIZE_32);
+
+    channel_config_set_high_priority(&dma_config, true);
+    channel_config_set_sniff_enable(&dma_config, false); // 禁用嗅探
+
     dma_channel_configure(i2s_config->dma_channel,
                           &dma_config,
                           &(i2s_config->pio->txf[i2s_config->sm]),    // Destination pointer

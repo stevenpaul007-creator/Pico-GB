@@ -52,8 +52,6 @@ It also includes the changes done by [YouMakeTech](https://github.com/YouMakeTec
   * At least you will not be able to use a 16-bit parallel display without an I2C IO expander, e.g. PCF8574.
   * smaller LCDs like the 176x220 one used in YouMakeTech's original project also work, but I did not implement any scaling for it
   * larger ones like 480x320 screens should also work. They might be interesting as they allow integer scaling (2x native resolution: 320x288 pixels). No scaling mode was implemented for this so far.
-    * Do yourself a favor and do not use one with an SPI controller as the framerate might be really low. I tried a 3.5" SPI one that was designed for the Raspberry Pi and only got 20 FSP out of it.
-    * spi with dma should be fine and should easily give 60fps.
 * (1x) SD card reader, like [this one](https://www.androegg.de/shop/esp8266-stm-32-arduino-spi-kartenleser-33v/) - if the LCD board does not already have one built in
 * (1x) FAT 32 formatted Micro SD card with roms you legally own. Roms must have the .gb or .gbc extension and must be copied to the root folder.
 * (1x) MAX98357A amplifier
@@ -98,7 +96,7 @@ You must select your pinout via the tft-espi-config/tft_setup.h (for the display
   * MISO = GP12
 * On-board PSRAM
   * CS = GP0  See [CS (QMI CS1n) which can be used on these pins: GPIO 0, 8, 19, (47)](https://forums.raspberrypi.com/viewtopic.php?t=384076#p2295447)
-* LCD, using SPI0
+* LCD, using PIO0, 59 fps
   * SCLK = GP2
   * MOSI = GP3
   * CS = GP4
@@ -123,7 +121,7 @@ When PlatformIO is installed, just open the project in Visual Studio Code. It sh
 * pico: for pico and rp2040 chip. not tested.
 * pico2: for pico 2 and rp2350 chip. No psram. Copy rom file to flash directly.
 * pico2-extpsram: for pico 2 and rp2350 chip. External psram attached to SPI1(see Pinout). Copy first 1.5MB of rom file to flash and the rest to psram. External psram seems a little slow for random read byte for rom.
-* pico-psram: for pico 2 and rp2350 chip. On board psram is used. Copy whole rom file to psram(4MB max). 
+* pico-psram: for pico 2 and rp2350 chip. On board psram is used. Copy whole rom file to psram(8MB max). 
 
 # Preparing the SD card
 The SD card is used to store game roms and save game progress. For this project, you will need a FAT 32 formatted Micro SD card with roms you legally own. Roms must have the .gb/.gbc extension.
@@ -142,6 +140,7 @@ The SD card is used to store game roms and save game progress. For this project,
 
 # In-game key combos
 * select + start = in-game menu
+* select + B = screen scale mode
 * hold select + power on = flash mode
 
 # License

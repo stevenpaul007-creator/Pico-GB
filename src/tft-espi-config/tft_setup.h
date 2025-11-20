@@ -108,7 +108,7 @@
 #define TFT_CS    4     // LCD CS
 #define TFT_DC    7     // LCD RS (Data/Command)
 #define TFT_RST   8     // LCD RST
-#define TOUCH_CS -1    // Touch screen CS pin (not used)
+//#define TOUCH_CS -1    // Touch screen CS pin (not used)
 
 #ifdef TFT_PARALLEL_16_BIT
 
@@ -182,9 +182,9 @@
 //#define RP2040_PIO_CLK_DIV 1 // 32ns write cycle at 125MHz CPU clock
 //#define RP2040_PIO_CLK_DIV 2 // 64ns write cycle at 125MHz CPU clock
 //#define RP2040_PIO_CLK_DIV 3 // 96ns write cycle at 125MHz CPU clock
-
-#define RP2040_PIO_CLK_DIV 1 // ~60ns write cycle at 250MHz CPU clock
-#define TFT_SPI_PORT 0
+#define RP2040_PIO_SPI 
+#define RP2040_PIO_CLK_DIV 2 // ~60ns write cycle at 250MHz CPU clock
+//#define TFT_SPI_PORT 0
 // For the RP2040 processor define the SPI port channel used (default 0 if undefined)
 //#define TFT_SPI_PORT 1 // Set to 0 if SPI0 pins are used, or 1 if spi1 pins used
 
@@ -203,9 +203,9 @@
 // #define SPI_FREQUENCY  20000000
 // #define SPI_FREQUENCY  27000000
 // #define SPI_FREQUENCY  40000000
-//#define SPI_FREQUENCY  62500000
+#define SPI_FREQUENCY  62500000
 // #define SPI_FREQUENCY  55000000 // STM32 SPI1 only (SPI2 maximum is 27MHz)
-#define SPI_FREQUENCY  80000000  // 提高SPI频率到80MHz，RP2350支持更高频率
+//#define SPI_FREQUENCY  80000000  // 提高SPI频率到80MHz，RP2350支持更高频率
 
 // Optional reduced SPI frequency for reading TFT
 // #define SPI_READ_FREQUENCY  20000000
