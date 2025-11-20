@@ -19,6 +19,7 @@ static uint8_t current_menu_selection = 0;
 static bool menu_active = false;
 static uint8_t color_scheme = 0; // 当前配色方案
 uint8_t vsysPercent = 0;
+uint8_t batteryLevel = 0;
 
 void measure_battery() {
   analogReadResolution(10);
@@ -27,10 +28,39 @@ void measure_battery() {
   rawADC = analogRead(A3);
   delay(5);
   float vsysVoltage = rawADC * BAT_CONV_FACTOR;
-  vsysPercent = map(vsysVoltage, 2.0f, 4.2f, 0, 100);
-  Serial.printf("I Battary = %0.2fv %d%%\r\n", vsysVoltage, vsysPercent);
+  uint8_t vsysPercent = map(vsysVoltage, 2.0f, 4.2f, 0, 100);
+  batteryLevel = map(vsysPercent, 0, 100, 0, 3);
+  Serial.printf("I Battary = %0.2fv %d%% level=%d\r\n", vsysVoltage, vsysPercent, batteryLevel);
 }
 
+// 绘制电池图标的函数
+void drawBatteryIcon() {
+    int x = tft.width() - 30; // 放置在右上角，距离右边缘 40 像素
+    int y = 5;                 // 距离顶边缘 5 像素
+    int w = 24;                // 电池宽度
+    int h = 12;                // 电池高度
+
+    // 1. 清除旧图标区域（如果需要，或者直接覆盖）
+    tft.fillRect(x, y, w, h, TFT_BLACK); 
+
+    // 2. 绘制电池外壳
+    tft.drawRect(x, y, w, h, TFT_WHITE);
+
+    // 3. 填充电量格
+    int numBars = batteryLevel; // batteryLevel 应为 0, 1, 2 或 3
+    int barSpacing = 2;
+    int barWidth = (w - (4 * barSpacing)) / 3; // 三格的宽度
+
+    for (int i = 0; i < numBars; i++) {
+        int barX = x + barSpacing + i * (barWidth + barSpacing);
+        int barY = y + barSpacing;
+        int barH = h - (2 * barSpacing);
+        
+        // 使用绿色表示电量充足，低电量时可以使用红色
+        uint16_t barColor = (batteryLevel <= 1) ? TFT_RED : TFT_GREEN;
+        tft.fillRect(barX, barY, barWidth, barH, barColor);
+    }
+}
 // 绘制弹出菜单背景
 void draw_menu_background() {
   // 保存当前游戏区域（简单实现，实际可能需要更复杂的保存机制）
@@ -43,6 +73,7 @@ void draw_menu_background() {
   tft.setTextColor(TFT_YELLOW, TFT_DARKGREY);
   tft.drawString("SYSTEM MENU", MENU_X + 10, MENU_Y + 5, FONT_ID);
   tft.drawLine(MENU_X, MENU_Y + 25, MENU_X + MENU_WIDTH, MENU_Y + 25, TFT_WHITE);
+  drawBatteryIcon();
 }
 
 // 绘制菜单项（复用您的样式）
@@ -79,11 +110,9 @@ void draw_menu() {
   draw_menu_item("Back to Game List", MENU_BACK_TO_GAME_LIST);
   draw_menu_item("Restart Game", MENU_RESTART_GAME);
 
-  char info_text[50];
-  snprintf(info_text, sizeof(info_text), "A: Select   B: Back    BAT:%d%%", vsysPercent);
   // 绘制操作提示
   tft.setTextColor(TFT_CYAN, TFT_DARKGREY);
-  tft.drawString(info_text, MENU_X + 5, MENU_Y + MENU_HEIGHT - 20, FONT_ID);
+  tft.drawString("A: Select     B: Back", MENU_X + 55, MENU_Y + MENU_HEIGHT - 30, 4);
 }
 
 // 应用配色方案
@@ -188,8 +217,8 @@ void open_menu() {
   current_menu_selection = 0;
   Serial.println("I open in game menu.");
   tft.setRotation(3);
-  draw_menu_background();
   measure_battery();
+  draw_menu_background();
   draw_menu();
   handle_menu_input(0); // this is a loop
   close_menu();
