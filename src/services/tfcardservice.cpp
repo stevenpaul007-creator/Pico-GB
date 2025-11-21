@@ -27,13 +27,18 @@ void CardService::initSDCard() {
   }
 
   Serial.printf("SD-Card initialized: FAT-Type=%d\r\n", sd.vol()->fatType());
-  FileListConfig defcaultConfig;
-  defcaultConfig.type = GameType_GB;
-  defcaultConfig.dir = "/gb/";
-  defcaultConfig.fileExt[0] = ".gb";
-  defcaultConfig.fileExt[1] = ".gbc";
-  defcaultConfig.fileExt[2] = nullptr; // 标记结束
-  _currentConfig = defcaultConfig;
+  
+  _gbConfig.type = GameType_GB;
+  _gbConfig.dir = "/gb/";
+  _gbConfig.fileExt[0] = ".gb";
+  _gbConfig.fileExt[1] = ".gbc";
+  _gbConfig.fileExt[2] = nullptr; // 标记结束
+  _nesConfig.type = GameType_NES;
+  _nesConfig.dir = "/nes/";
+  _nesConfig.fileExt[0] = ".nes";
+  _nesConfig.fileExt[1] = nullptr;
+  _nesConfig.fileExt[2] = nullptr; // 标记结束
+  _currentConfig = _gbConfig;
 }
 
 bool CardService::initSDCard_hardware() {
@@ -133,6 +138,7 @@ void CardService::rom_file_selector() {
   fileListMenu.setOnNextPageCallback(std::bind(&CardService::onNextPageCallback, this));
   fileListMenu.setOnPrevPageCallback(std::bind(&CardService::onPrevPageCallback, this));
   fileListMenu.setAfterFileSelectedCallback(std::bind(&CardService::afterFileSelectedCallback, this));
+  fileListMenu.setOnSelectKeyPressedCallback(std::bind(&CardService::onSelectKeyPressedCallback, this));
   fileListMenu.openMenu();
 }
 
@@ -520,6 +526,18 @@ void CardService::afterFileSelectedCallback() {
 #else
   load_cart_rom_file(filenameWithPath);
 #endif
+}
+
+void CardService::onSelectKeyPressedCallback() {
+  if(_currentConfig.type == GameType::GameType_GB){
+    _currentConfig = _nesConfig;
+  }else{
+    _currentConfig = _gbConfig;
+  }
+  fileListMenu.setGameType(_currentConfig.type);
+  num_page = 0;
+  total_pages = 1;
+  num_files = rom_file_selector_display_page(num_page);
 }
 
 void CardService::read_cart_ram_file(gb_s* gb) {

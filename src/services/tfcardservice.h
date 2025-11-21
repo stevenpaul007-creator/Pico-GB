@@ -108,6 +108,7 @@ public:
   bool onNextPageCallback();
   bool onPrevPageCallback();
   void afterFileSelectedCallback();
+  void onSelectKeyPressedCallback();
 
   void save_state(struct gb_s* gb);
   void load_state(struct gb_s* gb);
@@ -156,6 +157,9 @@ protected:
   bool is_real_time_savestate_loaded = false;
 
   FileListConfig _currentConfig;
+  
+  FileListConfig _gbConfig;
+  FileListConfig _nesConfig;
 };
 
 #endif

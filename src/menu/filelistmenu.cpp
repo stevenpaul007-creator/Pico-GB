@@ -21,21 +21,39 @@ void FileListMenu::setAfterFileSelectedCallback(std::function<void()> afterFileS
   _afterFileSelectedCallback = afterFileSelectedCallback;
 }
 
+void FileListMenu::setOnSelectKeyPressedCallback(std::function<void()> onSelectKeyPressedCallback) {
+  _onSelectKeyPressedCallback = onSelectKeyPressedCallback;
+}
+
 void FileListMenu::openMenu() {
   menuActive = true;
+  _currentPage = 1;
   makeTitle();
   tft.fillScreen(TFT_BLACK);
   Menu::openMenu();
 }
 
+void FileListMenu::setGameType(GameType gametype) {
+  _gameType = gametype;
+}
+
 void FileListMenu::makeTitle() {
   char title_text[25];
-  snprintf(title_text, sizeof(title_text), "GAME LIST  PAGE %d", _currentPage);
+  snprintf(title_text, sizeof(title_text), "%sGAME LIST  PAGE %d", _gameType == GameType_GB ? "GB " : "NES ", _currentPage);
   setTitle(title_text);
-  Serial.println(getTitle());
 }
 
 bool FileListMenu::onKeyDown() {
+  if (PRESSED_KEY(ButtonID::BTN_SELECT)) {
+    if (_onSelectKeyPressedCallback) {
+      _onSelectKeyPressedCallback();
+      makeTitle();
+      currentMenuSelection = 0;
+      _currentPage = 1;
+      drawMenuBackground();
+      drawMenuItems();
+    }
+  }
   if (PRESSED_KEY(ButtonID::BTN_SELECT) && PRESSED_KEY(ButtonID::BTN_B)) {
     rp2040.rebootToBootloader();
   }
@@ -70,7 +88,7 @@ bool FileListMenu::onKeyDown() {
       }
     }
   }
-  if (PRESSED_KEY(ButtonID::BTN_A) || PRESSED_KEY(ButtonID::BTN_B) || PRESSED_KEY(ButtonID::BTN_START)) {
+  if (PRESSED_KEY(ButtonID::BTN_A) || PRESSED_KEY(ButtonID::BTN_B)) {
     if (_afterFileSelectedCallback) {
       _afterFileSelectedCallback();
     }
