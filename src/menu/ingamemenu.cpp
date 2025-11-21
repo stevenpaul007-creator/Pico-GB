@@ -1,15 +1,8 @@
 #include "ingamemenu.h"
 
-#include "card_loader.h"
 #include "common.h"
-#include "gb.h"
-#include "input.h"
 
 #include <stdint.h>
-#if ENABLE_SOUND
-#include "i2s-audio.h"
-extern i2s_config_t i2s_config;
-#endif
 
 GameMenu::GameMenu() : Menu() {
   setWidth(DISPLAY_WIDTH);
@@ -33,17 +26,20 @@ uint8_t MENU_ITEMS = static_cast<int>(MenuItem::COUNT);
 // 显示音量值
 void GameMenu::setVolumeItem() {
   char vol_text[20];
-  if (i2s_config.volume == 16) {
+  uint8_t volume = srv.soundService.getVolume();
+  if (volume == 16) {
     snprintf(vol_text, sizeof(vol_text), " Volume:    OFF ");
   } else {
-    snprintf(vol_text, sizeof(vol_text), " Volume: %2d/16 ", 16 - i2s_config.volume);
+    snprintf(vol_text, sizeof(vol_text), " Volume: %2d/16 ", 16 - volume);
   }
   setTextAtIndex(vol_text, MENU_VOLUME);
 }
 
 // 应用配色方案
 void GameMenu::applyColorScheme() {
-  nextPalette();
+  if (_applyColorSchemeCallback) {
+    _applyColorSchemeCallback();
+  }
 }
 
 // 处理菜单项选择
@@ -88,39 +84,68 @@ void GameMenu::handleMenuSelection() {
   }
 }
 
+void GameMenu::setApplyColorSchemeCallback(std::function<void()> applyColorSchemeCallback) {
+  _applyColorSchemeCallback = applyColorSchemeCallback;
+}
+
+void GameMenu::setSaveRealtimeGameCallback(std::function<void()> saveRealtimeGameCallback) {
+  _saveRealtimeGameCallback = saveRealtimeGameCallback;
+}
+
+void GameMenu::setLoadRealtimeGameCallback(std::function<void()> loadRealtimeGameCallback) {
+  _loadRealtimeGameCallback = loadRealtimeGameCallback;
+}
+
+void GameMenu::setSaveRamCallback(std::function<void()> saveRamCallback) {
+  _saveRamCallback = saveRamCallback;
+}
+
+void GameMenu::setLoadRamCallback(std::function<void()> loadRamCallback) {
+  _loadRamCallback = loadRamCallback;
+}
+
+void GameMenu::setRestartGameCallback(std::function<void()> restartGameCallback) {
+  _restartGameCallback = restartGameCallback;
+}
+
 // 保存游戏（需要您实现具体逻辑）
 void GameMenu::saveRealtimeGame() {
   // 显示保存提示
-  save_state(&gb);
-  tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("Game Saved!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
-  delay(1000);
-  // drawMenuItems(); // 重新绘制菜单清除提示
+  if (_saveRealtimeGameCallback) {
+    _saveRealtimeGameCallback();
+    tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
+    tft.drawString("Game Saved!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
+    delay(1000);
+  }
 }
 
 // 读取游戏（需要您实现具体逻辑）
 void GameMenu::loadRealtimeGame() {
   // 显示读取提示
-  load_state(&gb);
-  tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("Game Loaded!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
-  delay(1000);
-  // drawMenuItems(); // 重新绘制菜单清除提示
+  if (_loadRealtimeGameCallback) {
+    _loadRealtimeGameCallback();
+    tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
+    tft.drawString("Game Loaded!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
+    delay(1000);
+  }
 }
 
 void GameMenu::saveRam() {
-  write_cart_ram_file(&gb);
-  tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("RAM Saved!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
-  delay(1000);
-  // drawMenuItems(); // 重新绘制菜单清除提示
+  if (_saveRamCallback) {
+    _saveRamCallback();
+    tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
+    tft.drawString("RAM Saved!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
+    delay(1000);
+  }
 }
 void GameMenu::loadRam() {
-  read_cart_ram_file(&gb);
-  tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
-  tft.drawString("RAM Loaded!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
-  delay(1000);
-  // drawMenuItems(); // 重新绘制菜单清除提示
+  if (_loadRamCallback) {
+    _loadRamCallback();
+
+    tft.setTextColor(TFT_GREEN, TFT_DARKGREY);
+    tft.drawString("RAM Loaded!", _menuX + 45, _menuY + _menuHeight - 50, FONT_ID);
+    delay(1000);
+  }
 }
 
 // 返回主菜单（需要您实现具体逻辑）
@@ -129,7 +154,9 @@ void GameMenu::returnToMainMenu() {
   //  这里添加返回主菜单的代码
 }
 void GameMenu::restartGame() {
-  gb_reset();
+  if (_restartGameCallback) {
+    _restartGameCallback();
+  }
 }
 
 // 系统重启（需要您实现具体逻辑）
@@ -139,7 +166,7 @@ void GameMenu::rebootSystem() {
 
 // 关闭菜单
 void GameMenu::onCloseMenu() {
-  menuActive = false;
+  Menu::onCloseMenu();
   delay(400);
   tft.setRotation(2);
 }
@@ -160,37 +187,37 @@ void GameMenu::openMenu() {
 }
 
 bool GameMenu::onKeyDown() {
-  if (!select && !b) {
+  if (PRESSED_KEY(ButtonID::BTN_SELECT) && PRESSED_KEY(ButtonID::BTN_B)) {
     rp2040.rebootToBootloader();
   }
   // up
-  if (!up) {
+  if (PRESSED_KEY(ButtonID::BTN_UP)) {
     currentMenuSelection = (currentMenuSelection == 0) ? MENU_ITEMS - 1 : currentMenuSelection - 1;
     drawMenuItems();
   }
-  if (!down) {
+  if (PRESSED_KEY(ButtonID::BTN_DOWN)) {
     currentMenuSelection = (currentMenuSelection == MENU_ITEMS - 1) ? 0 : currentMenuSelection + 1;
     drawMenuItems();
   }
-  if (!left) {
+  if (PRESSED_KEY(ButtonID::BTN_LEFT)) {
     if (currentMenuSelection == MENU_VOLUME) {
-      i2s_decrease_volume(&i2s_config);
+      srv.soundService.decreaseVolume();
       setVolumeItem();
       drawMenuItem(_lines[MENU_VOLUME], MENU_VOLUME);
     }
   }
-  if (!right) {
+  if (PRESSED_KEY(ButtonID::BTN_RIGHT)) {
     if (currentMenuSelection == MENU_VOLUME) {
-      i2s_increase_volume(&i2s_config);
+      srv.soundService.increaseVolume();
       setVolumeItem();
       drawMenuItem(_lines[MENU_VOLUME], MENU_VOLUME);
     }
   }
-  if (!a) {
+  if (PRESSED_KEY(ButtonID::BTN_A)) {
     handleMenuSelection();
     return true;
   }
-  if (!b) {
+  if (PRESSED_KEY(ButtonID::BTN_B)) {
     return true;
   }
   return false;

@@ -22,12 +22,15 @@ void Menu::openMenu() {
   measureBattery();
   drawMenuBackground();
   drawMenuItems();
+  srv.inputService.setAfterHandleJoypadCallback(
+      std::bind(&Menu::afterHandleJoypadCallback, this));
   loopInput();
   onCloseMenu();
 }
 
 // 关闭菜单
 void Menu::onCloseMenu() {
+  srv.inputService.unsetAfterHandleJoypadCallback();
   menuActive = false;
 }
 void Menu::handleMenuSelection() {
@@ -167,23 +170,17 @@ void Menu::drawBatteryIcon() {
 
 // 处理菜单输入
 void Menu::loopInput() {
-  while (true) {
-    up = gpio_get(PIN_UP);
-    down = gpio_get(PIN_DOWN);
-    left = gpio_get(PIN_LEFT);
-    right = gpio_get(PIN_RIGHT);
-    a = gpio_get(PIN_A);
-    b = gpio_get(PIN_B);
-    select = gpio_get(PIN_SELECT);
-    start = gpio_get(PIN_START);
-
-    if (!up || !down || !left || !right || !a || !b || !start || !select) {
-      if (onKeyDown())
-        return;
-    }
-    if (!up || !down || !left || !right) {
-      delay(150);
-    }
-    delay(50);
+  _shouldBreakLoopInput = false;
+  while (!_shouldBreakLoopInput) {
+    srv.inputService.handleJoypad();
+    srv.inputService.handleSerial();
   }
+}
+
+void Menu::afterHandleJoypadCallback() {
+  if (srv.inputService.hasButtonPressed()) {
+    _shouldBreakLoopInput = onKeyDown();
+    delay(150);
+  }
+  delay(50);
 }

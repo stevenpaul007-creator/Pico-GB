@@ -134,6 +134,7 @@ void i2s_dma_write(i2s_config_t *i2s_config,const int16_t *samples) {
                                          i2s_config->dma_trans_count);
 }
 
+#if 0
 /**
  * Adjust the output volume
  * i2s_config: I2S context obtained by i2s_get_default_config()
@@ -161,3 +162,4 @@ void i2s_decrease_volume(i2s_config_t *i2s_config) {
         i2s_config->volume++;
     }
 }
+#endif

@@ -38,7 +38,7 @@ const uint8_t *rom = (const uint8_t *)(&_FS_start);
 #endif
 
 #if ENABLE_RP2040_PSRAM
-static unsigned char rom_bank0[1024*130];
+static unsigned char rom_bank0[1024*64];
 #else
 static unsigned char rom_bank0[1024*32];
 #endif

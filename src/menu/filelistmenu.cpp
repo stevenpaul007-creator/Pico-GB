@@ -1,31 +1,24 @@
 #include "filelistmenu.h"
 
-#include "card_loader.h"
 #include "common.h"
-#include "gb.h"
-#include "input.h"
 
 #include <stdint.h>
-#if ENABLE_SOUND
-#include "i2s-audio.h"
-extern i2s_config_t i2s_config;
-#endif
 
 FileListMenu::FileListMenu() : Menu() {
   setWidth(DISPLAY_WIDTH);
   setHeight(DISPLAY_HEIGHT);
 }
 
-void FileListMenu::setOnNextPage(bool (*onNextPage)()) {
-  _onNextPage = onNextPage;
+void FileListMenu::setOnNextPageCallback(std::function<bool()> onNextPageCallback) {
+  _onNextPageCallback = onNextPageCallback;
 }
 
-void FileListMenu::setOnPrevPage(bool (*onPrevPage)()) {
-  _onPrevPage = onPrevPage;
+void FileListMenu::setOnPrevPageCallback(std::function<bool()> onPrevPageCallback) {
+  _onPrevPageCallback = onPrevPageCallback;
 }
 
-void FileListMenu::setAfterFileSelected(void (*afterFileSelected)()) {
-  _afterFileSelected = afterFileSelected;
+void FileListMenu::setAfterFileSelectedCallback(std::function<void()> afterFileSelectedCallback) {
+  _afterFileSelectedCallback = afterFileSelectedCallback;
 }
 
 void FileListMenu::openMenu() {
@@ -43,21 +36,21 @@ void FileListMenu::makeTitle() {
 }
 
 bool FileListMenu::onKeyDown() {
-  if (!select && !b) {
+  if (PRESSED_KEY(ButtonID::BTN_SELECT) && PRESSED_KEY(ButtonID::BTN_B)) {
     rp2040.rebootToBootloader();
   }
   // up
-  if (!up) {
+  if (PRESSED_KEY(ButtonID::BTN_UP)) {
     currentMenuSelection = (currentMenuSelection == 0) ? _menuCount - 1 : currentMenuSelection - 1;
     drawMenuItems();
   }
-  if (!down) {
+  if (PRESSED_KEY(ButtonID::BTN_DOWN)) {
     currentMenuSelection = (currentMenuSelection == _menuCount - 1) ? 0 : currentMenuSelection + 1;
     drawMenuItems();
   }
-  if (!left) {
-    if (_onPrevPage) {
-      if (_onPrevPage()) {
+  if (PRESSED_KEY(ButtonID::BTN_LEFT)) {
+    if (_onPrevPageCallback) {
+      if (_onPrevPageCallback()) {
         _currentPage--;
         makeTitle();
         currentMenuSelection = 0;
@@ -66,9 +59,9 @@ bool FileListMenu::onKeyDown() {
       }
     }
   }
-  if (!right) {
-    if (_onNextPage) {
-      if (_onNextPage()) {
+  if (PRESSED_KEY(ButtonID::BTN_RIGHT)) {
+    if (_onNextPageCallback) {
+      if (_onNextPageCallback()) {
         _currentPage++;
         makeTitle();
         currentMenuSelection = 0;
@@ -77,9 +70,9 @@ bool FileListMenu::onKeyDown() {
       }
     }
   }
-  if (!a || !b || !start) {
-    if (_afterFileSelected) {
-      _afterFileSelected();
+  if (PRESSED_KEY(ButtonID::BTN_A) || PRESSED_KEY(ButtonID::BTN_B) || PRESSED_KEY(ButtonID::BTN_START)) {
+    if (_afterFileSelectedCallback) {
+      _afterFileSelectedCallback();
     }
     return true;
   }

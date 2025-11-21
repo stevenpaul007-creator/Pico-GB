@@ -1,4 +1,6 @@
 #pragma once
+#include "allservices.h"
+
 #include <stdint.h>
 
 class Menu {
@@ -26,6 +28,7 @@ public:
   virtual void handleMenuSelection();
   virtual void drawMenuBackground();
   virtual void onCloseMenu();
+  virtual void afterHandleJoypadCallback();
 
 private:
   void measureBattery();
@@ -34,8 +37,8 @@ private:
 
 protected:
   uint8_t currentMenuSelection = 0;
-  bool up, down, left, right, a, b, select, start;
   bool menuActive = false;
+  bool _shouldBreakLoopInput = false;
   uint8_t vsysPercent = 0;
   uint8_t batteryLevel = 0;
 
