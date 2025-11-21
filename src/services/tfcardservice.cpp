@@ -381,8 +381,34 @@ void CardService::load_cart_rom_file(char* filename) {
 
   Serial.printf("I load_cart_rom_file(%s) COMPLETE\r\n", filename);
 }
+
 #endif
 
+bool CardService::write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint32_t offset) {
+  int nread = file.read(buffer, FLASH_SECTOR_SIZE);
+  if (nread < 0) {
+    error("Failed to read file!");
+  }
+
+  if (nread == 0) {
+    return false;
+  }
+
+  uint32_t flash_offset = ((uint32_t)&rom[offset]) - XIP_BASE;
+
+  uint32_t ints = save_and_disable_interrupts();
+  flash_range_erase(flash_offset, FLASH_SECTOR_SIZE);
+  flash_range_program(flash_offset, buffer, FLASH_SECTOR_SIZE);
+  restore_interrupts(ints);
+
+  /* Read back target region and check programming */
+  if (memcmp(&rom[offset], buffer, FLASH_SECTOR_SIZE) != 0) {
+    //@REEMscope.close();
+    error("Programming failed - Flash mismatch");
+  }
+
+  return true;
+}
 void CardService::save_state(gb_s* gb) {
   Serial.println("I save_state ...");
   gb_realtime_save.mbc = gb->mbc;

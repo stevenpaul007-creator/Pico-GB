@@ -68,9 +68,9 @@ struct gb_save_state_s {
 #endif
 };
 
-enum GameType{
-    GameType_GB = 0,
-    GameType_NES
+enum GameType {
+  GameType_GB = 0,
+  GameType_NES
 };
 
 struct FileListConfig {
@@ -131,6 +131,7 @@ public:
    */
   void load_cart_rom_file(char* filename);
 #endif
+  bool write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint32_t offset);
 
 private:
   bool initSDCard_hardware();

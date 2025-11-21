@@ -145,15 +145,16 @@ void Menu::drawBatteryIcon() {
   int y = 5; // 距离顶边缘 5 像素
   int w = 24; // 电池宽度
   int h = 12; // 电池高度
+  int numBars = batteryLevel; // batteryLevel 应为 0, 1, 2 或 3
+  uint16_t barColor = (numBars <= 1) ? TFT_RED : TFT_GREEN;
 
   // 1. 清除旧图标区域（如果需要，或者直接覆盖）
-  tft.fillRect(x, y, w, h, TFT_BLACK);
+  tft.fillRect(x, y, w, h, TFT_WHITE);
 
   // 2. 绘制电池外壳
-  tft.drawRect(x, y, w, h, TFT_WHITE);
+  tft.drawRect(x, y, w, h, barColor);
 
   // 3. 填充电量格
-  int numBars = batteryLevel; // batteryLevel 应为 0, 1, 2 或 3
   int barSpacing = 2;
   int barWidth = (w - (4 * barSpacing)) / 3; // 三格的宽度
 
@@ -163,7 +164,6 @@ void Menu::drawBatteryIcon() {
     int barH = h - (2 * barSpacing);
 
     // 使用绿色表示电量充足，低电量时可以使用红色
-    uint16_t barColor = (batteryLevel <= 1) ? TFT_RED : TFT_GREEN;
     tft.fillRect(barX, barY, barWidth, barH, barColor);
   }
 }
