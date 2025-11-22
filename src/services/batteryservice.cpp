@@ -1,12 +1,16 @@
 #include "batteryservice.h"
 
+uint8_t BatteryService::_vsysPercent;
+uint8_t BatteryService::_batteryLevel;
+float BatteryService::_vsysVoltage;
+
 BatteryService::BatteryService() {
 }
 void BatteryService::initBattery() {
-  this->measureBattery();
+  measureBattery();
 }
 void BatteryService::measureBattery() {
-  analogReadResolution(10);
+  analogReadResolution(12);
   uint16_t rawADC = analogRead(A3); // Read from ADC3 (GPIO29 is mapped to A3 in Arduino)
   delay(15);
   rawADC = analogRead(A3);
@@ -17,7 +21,7 @@ void BatteryService::measureBattery() {
   _vsysVoltage = vsysVoltage;
   _vsysPercent = vsysPercent;
   _batteryLevel = batteryLevel;
-  Serial.printf("I Battary = %0.2fv %d%% level=%d\r\n", this->_vsysVoltage, this->_vsysPercent, this->_batteryLevel);
+  Serial.printf("I Battary = %0.2fv %d%% level=%d\r\n", _vsysVoltage, vsysPercent, batteryLevel);
 }
 
 uint8_t BatteryService::get_VSYSPercent() {

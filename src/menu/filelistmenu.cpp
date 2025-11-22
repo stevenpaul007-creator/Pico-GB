@@ -38,8 +38,8 @@ void FileListMenu::setGameType(GameType gametype) {
 }
 
 void FileListMenu::makeTitle() {
-  char title_text[25];
-  snprintf(title_text, sizeof(title_text), "%sGAME LIST  PAGE %d", _gameType == GameType_GB ? "GB " : "NES ", _currentPage);
+  char title_text[40];
+  snprintf(title_text, sizeof(title_text), "%sGAME PAGE %d  Press Select", _gameType == GameType_GB ? "GB " : "NES ", _currentPage);
   setTitle(title_text);
 }
 
@@ -47,9 +47,9 @@ bool FileListMenu::onKeyDown() {
   if (PRESSED_KEY(ButtonID::BTN_SELECT)) {
     if (_onSelectKeyPressedCallback) {
       _onSelectKeyPressedCallback();
+      _currentPage = 1;
       makeTitle();
       currentMenuSelection = 0;
-      _currentPage = 1;
       drawMenuBackground();
       drawMenuItems();
     }

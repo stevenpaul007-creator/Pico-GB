@@ -1,23 +1,23 @@
 #pragma once
-
 #include "baseservice.h"
-#define BAT_CONV_FACTOR (3.3f / (1 << 10) * 3)
+
+#define BAT_CONV_FACTOR (3.3f / (1 << 12) * 3)
 
 class BatteryService {
 public:
   BatteryService();
-  void initBattery();
-  void measureBattery();
-  uint8_t get_VSYSPercent();
+  static void initBattery();
+  static void measureBattery();
+  static uint8_t get_VSYSPercent();
 
   /**
    * 0..3
    */
-  uint8_t getBatteryLevel();
-  float getVSYSVoltage();
+  static uint8_t getBatteryLevel();
+  static float getVSYSVoltage();
 
 private:
-  uint8_t _vsysPercent;
-  uint8_t _batteryLevel;
-  float _vsysVoltage;
+  static uint8_t _vsysPercent;
+  static uint8_t _batteryLevel;
+  static float _vsysVoltage;
 };

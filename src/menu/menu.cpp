@@ -5,7 +5,6 @@
 #include <cstdlib> // For malloc and free
 #include <cstring> // For strlen and memcpy
 
-#define BAT_CONV_FACTOR (3.3f / (1 << 10) * 3)
 Menu::Menu() {
 }
 void Menu::setWidth(uint16_t width) {
@@ -128,15 +127,7 @@ void Menu::drawMenuBackground() {
 }
 
 void Menu::measureBattery() {
-  analogReadResolution(10);
-  uint16_t rawADC = analogRead(A3); // Read from ADC3 (GPIO29 is mapped to A3 in Arduino)
-  delay(5);
-  rawADC = analogRead(A3);
-  delay(5);
-  float vsysVoltage = rawADC * BAT_CONV_FACTOR;
-  uint8_t vsysPercent = map(vsysVoltage, 2.0f, 4.2f, 0, 100);
-  batteryLevel = map(vsysPercent, 0, 100, 0, 3);
-  Serial.printf("I Battary = %0.2fv %d%% level=%d\r\n", vsysVoltage, vsysPercent, batteryLevel);
+  BatteryService::measureBattery();
 }
 
 // 绘制电池图标的函数
@@ -145,7 +136,7 @@ void Menu::drawBatteryIcon() {
   int y = 5; // 距离顶边缘 5 像素
   int w = 24; // 电池宽度
   int h = 12; // 电池高度
-  int numBars = batteryLevel; // batteryLevel 应为 0, 1, 2 或 3
+  int numBars = BatteryService::getBatteryLevel(); // batteryLevel 应为 0, 1, 2 或 3
   uint16_t barColor = (numBars <= 1) ? TFT_RED : TFT_GREEN;
 
   // 1. 清除旧图标区域（如果需要，或者直接覆盖）

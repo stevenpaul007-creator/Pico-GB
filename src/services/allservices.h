@@ -2,6 +2,7 @@
 #include "inputservice.h"
 #include "tfcardservice.h"
 #include "soundservice.h"
+#include "batteryservice.h"
 
 #define PRESSED_KEY(x) (srv.inputService.isButtonPressed(x))
 
