@@ -169,9 +169,7 @@ void InputService::setAfterHandleJoypadCallback(std::function<void()> afterHandl
   _afterHandleJoypadCallback = afterHandleJoypadCallback;
 }
 void InputService::unsetAfterHandleJoypadCallback() {
-  if (_prevAfterHandleJoypadCallback) {
-    _afterHandleJoypadCallback = _prevAfterHandleJoypadCallback;
-  }
+  _afterHandleJoypadCallback = _prevAfterHandleJoypadCallback;
 }
 void InputService::setButtonPressed(ButtonID button) {
   g_button_state.current_state |= (1U << button);

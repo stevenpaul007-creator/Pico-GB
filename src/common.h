@@ -110,10 +110,11 @@ union core_cmd {
   uint32_t full;
 };
 
-void lcd_init(bool isCore1);
-void lcd_draw_line(struct gb_s* gb, const uint8_t* pixels, const uint_fast8_t line);
+enum GameType {
+  GameType_GB = 0,
+  GameType_NES
+};
 
-void core1_init();
 
 void reset(uint32_t sleepMs = 0);
 

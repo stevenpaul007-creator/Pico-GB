@@ -68,11 +68,6 @@ struct gb_save_state_s {
 #endif
 };
 
-enum GameType {
-  GameType_GB = 0,
-  GameType_NES
-};
-
 struct FileListConfig {
   GameType type = GameType_GB;
   const char* dir;

@@ -168,7 +168,6 @@ void GameMenu::rebootSystem() {
 void GameMenu::onCloseMenu() {
   Menu::onCloseMenu();
   delay(400);
-  tft.setRotation(2);
 }
 
 void GameMenu::openMenu() {

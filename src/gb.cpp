@@ -13,7 +13,7 @@
 struct gb_s gb;
 palette_t palette; // Colour palette
 
-uint8_t ram[RAM_SIZE]
+uint8_t RS_ram[GB_RAM_SIZE]
 #ifdef ENABLE_RP2040_PSRAM
 PSRAM
 #endif
@@ -22,7 +22,7 @@ PSRAM
 // Definition of ROM data
 #if !ENABLE_SDCARD
 #include "game_bin.h"
-const uint8_t *rom = GAME_DATA;
+const uint8_t *RS_rom = GAME_DATA;
 #else
 
 #if ENABLE_RP2040_PSRAM
@@ -34,11 +34,11 @@ uint8_t* psram_rom = nullptr;
  * This is available from _FS_start (i.e. XIP_BASE + program size) to _FS_end. Note that the last sector is reserved for EEPROM.
  * Game Boy DMG ROM size ranges from 32768 bytes (e.g. Tetris) to 1,048,576 bytes (e.g. Pokemod Red)
  */
-const uint8_t *rom = (const uint8_t *)(&_FS_start);
+const uint8_t *RS_rom = (const uint8_t *)(&_FS_start);
 #endif
 
 #if ENABLE_RP2040_PSRAM
-static unsigned char rom_bank0[1024*64];
+static unsigned char rom_bank0[1024*1];
 #else
 static unsigned char rom_bank0[1024*32];
 #endif
@@ -63,7 +63,7 @@ static uint8_t gb_rom_read(struct gb_s* gb, const uint_fast32_t addr) {
     return psram_read8(addr);
   }
 #endif
-  return rom[addr];
+  return RS_rom[addr];
 }
 
 /**
@@ -71,7 +71,7 @@ static uint8_t gb_rom_read(struct gb_s* gb, const uint_fast32_t addr) {
  */
 static uint8_t gb_cart_ram_read(struct gb_s* gb, const uint_fast32_t addr) {
   (void)gb;
-  return ram[addr];
+  return RS_ram[addr];
 }
 
 /**
@@ -79,7 +79,7 @@ static uint8_t gb_cart_ram_read(struct gb_s* gb, const uint_fast32_t addr) {
  */
 static void gb_cart_ram_write(struct gb_s* gb, const uint_fast32_t addr,
     const uint8_t val) {
-  ram[addr] = val;
+  RS_ram[addr] = val;
 }
 
 static void gb_error(struct gb_s* gb, const enum gb_error_e gb_err, const uint16_t addr) {
@@ -108,7 +108,7 @@ void initGbContext() {
 #if ENABLE_RP2040_PSRAM
   memcpy(rom_bank0, psram_rom, sizeof(rom_bank0));
 #else
-  memcpy(rom_bank0, rom, sizeof(rom_bank0));
+  memcpy(rom_bank0, RS_rom, sizeof(rom_bank0));
 #endif
 
   auto ret = gb_init(&gb, &gb_rom_read, &gb_cart_ram_read, &gb_cart_ram_write, &gb_error, NULL);

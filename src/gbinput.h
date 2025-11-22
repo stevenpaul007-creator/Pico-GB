@@ -8,6 +8,7 @@ public:
   void handleJoypad();
   void handleSerial();
   void nextPalette();
+  void shutdown();
 
 private:
   void afterHandleJoypadCallback();

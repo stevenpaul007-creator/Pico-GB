@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lcd_core.h"
 
 // RP2040 Headers
 #include <hardware/vreg.h>
@@ -38,6 +39,8 @@
 
 GBInput gbInput;
 
+#include "nesinput.h"
+
 uint_fast32_t frames = 0;
 
 void startGBEmulator() {
@@ -49,7 +52,7 @@ void startGBEmulator() {
   auto_assign_palette(palette, gb_colour_hash(&gb), gb_get_rom_name(&gb, rom_title));
 
 #if ENABLE_LCD
-  gb_init_lcd(&gb, &lcd_draw_line);
+  gb_init_lcd(&gb, &lcd_draw_line_8bits);
 
   /* Start Core1, which processes requests to the LCD. */
   Serial.println("Starting Core1 ...");
@@ -68,6 +71,23 @@ void startGBEmulator() {
 #endif
 
   Serial.print("\n> ");
+}
+
+void startNESEmulator() {
+#if ENABLE_LCD
+  /* Start Core1, which processes requests to the LCD. */
+  Serial.println("Starting Core1 ...");
+  multicore_launch_core1(core1_init);
+#endif
+
+#if ENABLE_SOUND
+  // Initialize audio emulation
+  Serial.println("Starting audio ...");
+#endif
+
+
+  Serial.print("\n> ");
+  nesMain();
 }
 
 void reset(uint32_t sleepMs) {
@@ -134,26 +154,34 @@ void setup() {
       startGBEmulator();
       break;
     case GameType_NES:
+      startNESEmulator();
       break;
   }
 }
 
 void loop() {
-  gb.gb_frame = 0;
+  switch (srv.cardService.getSelectedFileType()) {
+  case GameType_GB:
+    gb.gb_frame = 0;
 
-  do {
-    //__gb_step_cpu(&gb);
-    gb_run_frame(&gb);
-    tight_loop_contents();
-  } while (HEDLEY_LIKELY(gb.gb_frame == 0));
+    do {
+      //__gb_step_cpu(&gb);
+      gb_run_frame(&gb);
+      tight_loop_contents();
+    } while (HEDLEY_LIKELY(gb.gb_frame == 0));
 
-  frames++;
+    frames++;
 #if ENABLE_SOUND
-  srv.soundService.handleSoundLoop();
+    srv.soundService.handleSoundLoop();
 #endif
+    break;
+    gbInput.handleJoypad();
+    gbInput.handleSerial();
+  case GameType_NES:
+    InfoNES_Main();
+    break;
+  }
 
-  gbInput.handleJoypad();
-  gbInput.handleSerial();
 }
 
 void error(String message) {

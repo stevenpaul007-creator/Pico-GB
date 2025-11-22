@@ -57,6 +57,16 @@ void GBInput::nextPalette() {
   updatePalette();
 }
 
+void GBInput::shutdown() {
+  srv.inputService.unsetAfterHandleJoypadCallback();
+  gameMenu.setApplyColorSchemeCallback(nullptr);
+  gameMenu.setSaveRealtimeGameCallback(nullptr);
+  gameMenu.setLoadRealtimeGameCallback(nullptr);
+  gameMenu.setSaveRamCallback(nullptr);
+  gameMenu.setLoadRamCallback(nullptr);
+  gameMenu.setRestartGameCallback(nullptr);
+}
+
 void GBInput::prevPalette() {
   palette_selected = (palette_selected + PALETTE_COUNT - 1) % PALETTE_COUNT;
   updatePalette();

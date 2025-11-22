@@ -16,6 +16,7 @@ public:
   bool onKeyDown() override;
   void openMenu() override;
   void setGameType(GameType gametype);
+  void onCloseMenu() override;
 
 private:
   std::function<bool()> _onNextPageCallback;

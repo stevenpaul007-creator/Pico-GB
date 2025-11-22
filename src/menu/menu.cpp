@@ -17,7 +17,7 @@ void Menu::setHeight(uint16_t height) {
 void Menu::openMenu() {
   menuActive = true;
   currentMenuSelection = 0;
-  tft.setRotation(3);
+  // tft.setRotation(3);
   measureBattery();
   drawMenuBackground();
   drawMenuItems();

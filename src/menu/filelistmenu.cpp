@@ -37,6 +37,15 @@ void FileListMenu::setGameType(GameType gametype) {
   _gameType = gametype;
 }
 
+void FileListMenu::onCloseMenu() {
+  _onNextPageCallback = nullptr;
+  _onPrevPageCallback = nullptr;
+  _afterFileSelectedCallback = nullptr;
+  _onSelectKeyPressedCallback = nullptr;
+  Menu::onCloseMenu();
+  delay(400);
+}
+
 void FileListMenu::makeTitle() {
   char title_text[40];
   snprintf(title_text, sizeof(title_text), "%sGAME PAGE %d  Press Select", _gameType == GameType_GB ? "GB " : "NES ", _currentPage);

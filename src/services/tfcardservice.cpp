@@ -38,7 +38,7 @@ void CardService::initSDCard() {
   _nesConfig.fileExt[0] = ".nes";
   _nesConfig.fileExt[1] = nullptr;
   _nesConfig.fileExt[2] = nullptr; // 标记结束
-  _currentConfig = _gbConfig;
+  _currentConfig = _nesConfig;
 }
 
 bool CardService::initSDCard_hardware() {
@@ -400,7 +400,7 @@ bool CardService::write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint3
     return false;
   }
 
-  uint32_t flash_offset = ((uint32_t)&rom[offset]) - XIP_BASE;
+  uint32_t flash_offset = ((uint32_t)&RS_rom[offset]) - XIP_BASE;
 
   uint32_t ints = save_and_disable_interrupts();
   flash_range_erase(flash_offset, FLASH_SECTOR_SIZE);
@@ -408,7 +408,7 @@ bool CardService::write_rom_sector_to_flash(FsFile& file, uint8_t* buffer, uint3
   restore_interrupts(ints);
 
   /* Read back target region and check programming */
-  if (memcmp(&rom[offset], buffer, FLASH_SECTOR_SIZE) != 0) {
+  if (memcmp(&RS_rom[offset], buffer, FLASH_SECTOR_SIZE) != 0) {
     //@REEMscope.close();
     error("Programming failed - Flash mismatch");
   }
@@ -556,7 +556,7 @@ void CardService::read_cart_ram_file(gb_s* gb) {
     if (!file.open(filename, O_RDONLY)) {
       Serial.printf("E f_open(%s) error\r\n", filename);
     } else {
-      file.read(ram, file.size());
+      file.read(RS_ram, file.size());
     }
 
     if (!file.close()) {
@@ -584,7 +584,7 @@ void CardService::write_cart_ram_file(gb_s* gb) {
       return;
     }
 
-    file.write(ram, save_size);
+    file.write(RS_ram, save_size);
     if (!file.close()) {
       Serial.printf("E f_close error\r\n");
     }

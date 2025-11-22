@@ -12,44 +12,14 @@
  * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-
- #include <TFT_eSPI.h>
-
-#include "common.h"
-
+#include "lcd_core.h"
 TFT_eSPI tft = TFT_eSPI();
-#if ENABLE_LCD_FRAMEBUFFER
-#if ENABLE_FRAMEBUFFER_FLIP_X_Y
-#define FRAMEBUFFER_WIDTH DISPLAY_HEIGHT
-#define FRAMEBUFFER_HEIGHT DISPLAY_WIDTH
-#else
-#define FRAMEBUFFER_WIDTH DISPLAY_WIDTH
-#define FRAMEBUFFER_HEIGHT DISPLAY_HEIGHT
-#endif
-#define FRAMEBUFFER_PIXELS (FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT)
-#if ENABLE_LCD_DMA && ENABLE_DOUBLE_BUFFERING
-#define BUFFER_COUNT 2
-#else // !ENABLE_LCD_DMA
-#define BUFFER_COUNT 1 // no use in double buffering without DMA
-#endif
-static uint16_t framebuffers[BUFFER_COUNT][FRAMEBUFFER_PIXELS];
-static int8_t activeFramebufferId = 0;
-#else // !ENABLE_LCD_FRAMEBUFFER
-// Note DMA mode does not have a measurable effect without a framebuffer
-static uint16_t linebuffer[DISPLAY_WIDTH];
-#endif
 
-static uint8_t scaledLineOffsetTable[LCD_HEIGHT]; // scaled to 240 lines
+uint_fast16_t max_lcd_width = LCD_WIDTH;
+uint_fast16_t max_lcd_height = LCD_HEIGHT;
 
-/* Pixel data is stored in here. */
-static uint8_t pixels_buffer[LCD_WIDTH];
 
-volatile ScalingMode scalingMode = ScalingMode::STRETCH; 
-
-static int lcd_line_busy = 0;
-
-#define IS_REPEATED(pos) ((pos % 2) || (pos % 6 == 0))
-
+volatile ScalingMode scalingMode = ScalingMode::NORMAL; 
 static void calcExtraLineTable() {
   uint8_t offset = 0;
   for (uint8_t line = 0; line < LCD_HEIGHT; ++line) {
@@ -66,8 +36,9 @@ void lcd_init(bool isCore1) {
   if (isCore1 && !tft.initDMA(/*ctrl_cs not supported in RP2040 implementation*/)) {
     error("Failed to initialize TFT DMA");
   }
+  Serial.println("I TFT DMA inited.");
 #endif
-  spi_init(spi0, SPI_FREQUENCY);
+  // spi_init(spi0, SPI_FREQUENCY);
 
   bool rotate = true;
 #if ENABLE_FRAMEBUFFER_FLIP_X_Y
@@ -81,21 +52,31 @@ void lcd_init(bool isCore1) {
   tft.fillScreen(TFT_BLACK);
 }
 
-void lcd_draw_line(struct gb_s* gb, const uint8_t pixels[LCD_WIDTH], const uint_fast8_t line) {
+/**
+ * GB callback method to draw a line.
+ */
+void lcd_draw_line(struct gb_s* gb, const uint16_t* pixels, const uint_fast8_t line) {
   union core_cmd cmd;
 
   /* Wait until previous line is sent. */
   while (__atomic_load_n(&lcd_line_busy, __ATOMIC_SEQ_CST))
     tight_loop_contents();
-
-  memcpy(pixels_buffer, pixels, LCD_WIDTH);
-
+  if(pixels != pixels_buffer){
+    memcpy(pixels_buffer, pixels, max_lcd_width);
+  }
   /* Populate command. */
   cmd.cmd = CORE_CMD_LCD_LINE;
   cmd.data = line;
 
   __atomic_store_n(&lcd_line_busy, 1, __ATOMIC_SEQ_CST);
   multicore_fifo_push_blocking(cmd.full);
+}
+
+void lcd_draw_line_8bits(gb_s* gb, const uint8_t* pixels, const uint_fast8_t line) {
+  for (uint_fast16_t i = 0; i < max_lcd_width; i++) {
+    pixels_buffer[i] = pixels[i];
+  }
+  lcd_draw_line(gb, pixels_buffer, line);
 }
 
 #if ENABLE_LCD_FRAMEBUFFER
@@ -132,8 +113,8 @@ void lcd_pushLine(uint16_t screenColOffset, uint16_t screenLineOffset, uint16_t 
 #endif
 
 void lcd_write_pixels_normal(const uint16_t* pixels, uint8_t line, uint_fast16_t count) {
-  const uint16_t colOffset = (DISPLAY_WIDTH - LCD_WIDTH) / 2;
-  const uint16_t screenLineOffset = (DISPLAY_HEIGHT - LCD_HEIGHT) / 2;
+  const uint16_t colOffset = (DISPLAY_WIDTH - max_lcd_width) / 2;
+  const uint16_t screenLineOffset = (DISPLAY_HEIGHT - max_lcd_height) / 2;
   lcd_pushLine(colOffset, screenLineOffset, line, pixels, count);
 }
 
@@ -236,24 +217,24 @@ void lcd_clear() {
 }
 
 void core1_lcd_draw_line(const uint_fast8_t line) {
-  static uint16_t fb[LCD_WIDTH];
-
-  if (gb.cgb.cgbMode) {
-    for (unsigned int x = 0; x < LCD_WIDTH; x++) {
-      fb[x] = gb.cgb.fixPalette[pixels_buffer[x]];
-    }
-  } else {
-    for (unsigned int x = 0; x < LCD_WIDTH; x++) {
-      fb[x] = palette[(pixels_buffer[x] & LCD_PALETTE_ALL) >> 4]
-                    [pixels_buffer[x] & 3];
+  // uint16_t fb[max_lcd_width];
+  if(&gb){
+    if (gb.cgb.cgbMode) {
+      for (unsigned int x = 0; x < max_lcd_width; x++) {
+        pixels_buffer[x] = gb.cgb.fixPalette[pixels_buffer[x]];
+      }
+    } else {
+      for (unsigned int x = 0; x < max_lcd_width; x++) {
+        pixels_buffer[x] = palette[(pixels_buffer[x] & LCD_PALETTE_ALL) >> 4]
+                      [pixels_buffer[x] & 3];
+      }
     }
   }
-
-  lcd_write_pixels(fb, line, LCD_WIDTH);
+  lcd_write_pixels(pixels_buffer, line, max_lcd_width);
   __atomic_store_n(&lcd_line_busy, 0, __ATOMIC_SEQ_CST);
 
 #if ENABLE_LCD_FRAMEBUFFER
-  if (line == LCD_HEIGHT - 1) {
+  if (line == max_lcd_height - 1) {
     lcd_write_framebuffer_to_screen();
   }
 #endif
