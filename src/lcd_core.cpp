@@ -198,10 +198,6 @@ void lcd_write_framebuffer_to_screen() {
   }
   lcd_swap_buffers();
   
-  // if (gameType == GameType_NES) {
-  //   tft.writecommand(0x36);
-  //   tft.writedata(0xE0);//NES use BGR mode  0x08|0x20|0x40|0x80
-  // }
   tft.startWrite(); // manual start required as DMA transfer is asynchronous
   tft.pushImageDMA(0, 0, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT, framebuffer);
   // tft.endWrite(); // do not call endWrite(), as it will wait for the DMA transfer to finish, which results in no performance gain

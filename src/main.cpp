@@ -130,7 +130,7 @@ void setup() {
 
   // Initialise USB serial connection for debugging.
   Serial.begin(115200);
-  while (!Serial) ;
+  // while (!Serial) ;
   // delay(2000);
   Serial.println("I Serial OK.");
 
