@@ -44,6 +44,8 @@ GBInput gbInput;
 uint_fast32_t frames = 0;
 
 void startGBEmulator() {
+  gbInput.initJoypad();
+  scalingMode = ScalingMode::STRETCH;
   Serial.println("Init GB context ...");  
   initGbContext();
 
@@ -74,6 +76,7 @@ void startGBEmulator() {
 }
 
 void startNESEmulator() {
+  scalingMode = ScalingMode::NORMAL;
 #if ENABLE_LCD
   /* Start Core1, which processes requests to the LCD. */
   Serial.println("Starting Core1 ...");
@@ -127,7 +130,7 @@ void setup() {
 
   // Initialise USB serial connection for debugging.
   Serial.begin(115200);
-  // while (!Serial) ;
+  while (!Serial) ;
   // delay(2000);
   Serial.println("I Serial OK.");
 
@@ -148,9 +151,9 @@ void setup() {
   srv.cardService.rom_file_selector();
 #endif
 #endif
-  switch(srv.cardService.getSelectedFileType()){
+  gameType = srv.cardService.getSelectedFileType();
+  switch(gameType){
     case GameType_GB:
-      gbInput.initJoypad();
       startGBEmulator();
       break;
     case GameType_NES:
@@ -175,12 +178,12 @@ void loop() {
     srv.soundService.handleSoundLoop();
 #endif
     break;
-    gbInput.handleJoypad();
-    gbInput.handleSerial();
   case GameType_NES:
     InfoNES_Main();
     break;
   }
+  srv.inputService.handleJoypad();
+  srv.inputService.handleSerial();
 
 }
 

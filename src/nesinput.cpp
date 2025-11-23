@@ -115,9 +115,22 @@ void InfoNES_SoundOutput(int samples, BYTE* wave1, BYTE* wave2, BYTE* wave3, BYT
   final_wave[fw_wr][i] = -1;
   fw_wr = 1 - fw_wr;
 }
+static void __not_in_flash_func(speed_control)(void) {
+  static uint64_t last_blink = 0;
+
+  // frame timing control
+  uint64_t cur_time = time_us_64();
+  uint64_t diff_time = cur_time - last_blink;
+  // 1/60 = 16666 us
+  while (last_blink + (16666) > cur_time) {
+    cur_time = time_us_64();
+  }
+
+  last_blink = cur_time;
+}
 
 int InfoNES_LoadFrame() {
-
+  speed_control();
   auto count = frame++;
 #ifdef LED_ENABLED
   auto onOff = hw_divider_s32_quotient_inlined(count, 60) & 1;
@@ -250,6 +263,13 @@ void __not_in_flash_func(InfoNES_PostDrawLine)(int line, bool frommenu) {
 void __not_in_flash_func(InfoNES_PreDrawLine)(int line) {
 
   InfoNES_SetLineBuffer(pixels_buffer, NES_DISP_WIDTH);
+  // if (line == 100) {
+  //   // display pixel_buffer to serial monitor for debugging
+  //   for (int i = 0; i < 320; i++) {
+  //     Serial.printf("%04X ", pixels_buffer[i]);
+  //   }
+  //   Serial.printf("\n");
+  // }
 }
 
 void initJoypad() {
@@ -283,10 +303,10 @@ int nesMain() {
 //  b = blue - 4 bit
 // Colors are stored as ggggbbbbaaaarrrr
 // converted from http://wiki.picosystem.com/en/tools/image-converter
-#define CC(x) (x & 32767)
 
-const WORD __not_in_flash_func(NesPalette)[] = {
-
+/*BGR565*/
+#define CC(BGR) (BGR & 32767)
+const WORD __not_in_flash_func(NesPalette)[64] = {
 CC(0xAE73),CC(0xD120),CC(0x1500),CC(0x1340),CC(0x0E88),CC(0x02A8),CC(0x00A0),CC(0x4078),
 CC(0x6041),CC(0x2002),CC(0x8002),CC(0xE201),CC(0xEB19),CC(0x0000),CC(0x0000),CC(0x0000),
 CC(0xF7BD),CC(0x9D03),CC(0xDD21),CC(0x1E80),CC(0x17B8),CC(0x0BE0),CC(0x40D9),CC(0x61CA),
@@ -294,76 +314,17 @@ CC(0x808B),CC(0xA004),CC(0x4005),CC(0x8704),CC(0x1104),CC(0x0000),CC(0x0000),CC(
 CC(0xFFFF),CC(0xFF3D),CC(0xBF5C),CC(0x5FA4),CC(0xDFF3),CC(0xB6FB),CC(0xACFB),CC(0xC7FC),
 CC(0xE7F5),CC(0x8286),CC(0xE94E),CC(0xD35F),CC(0x5B07),CC(0x0000),CC(0x0000),CC(0x0000),
 CC(0xFFFF),CC(0x3FAF),CC(0xBFC6),CC(0x5FD6),CC(0x3FFE),CC(0x3BFE),CC(0xF6FD),CC(0xD5FE),
-CC(0x34FF),CC(0xF4E7),CC(0x97AF),CC(0xF9B7),CC(0xFE9F),CC(0x0000),CC(0x0000),CC(0x0000)
+CC(0x34FF),CC(0xF4E7),CC(0x97AF),CC(0xF9B7),CC(0xFE9F),CC(0x0000),CC(0x0000),CC(0x0000),
 
-    // 0x77f7, // 00
-    // 0x37f0, // 01
-    // 0x28f2, // 02
-    // 0x28f4, // 03
-    // 0x17f6, // 04
-    // 0x14f8, // 05
-    // 0x11f8, // 06
-    // 0x20f6, // 07
-    // 0x30f4, // 08
-    // 0x40f1, // 09
-    // 0x40f0, // 0a
-    // 0x41f0, // 0b
-    // 0x44f0, // 0c
-    // 0x00f0, // 0d
-    // 0x00f0, // 0e
-    // 0x00f0, // 0f
-    // 0xbbfb, // 10
-    // 0x7cf1, // 11
-    // 0x6df4, // 12
-    // 0x5df8, // 13
-    // 0x4bfb, // 14
-    // 0x47fc, // 15
-    // 0x43fc, // 16
-    // 0x50fa, // 17
-    // 0x60f7, // 18
-    // 0x70f4, // 19
-    // 0x81f1, // 1a
-    // 0x84f0, // 1b
-    // 0x88f0, // 1c
-    // 0x00f0, // 1d
-    // 0x00f0, // 1e
-    // 0x00f0, // 1f
-    // 0xFFFF, // 20
-    // 0xcff6, // 21
-    // 0xbff9, // 22
-    // 0x9ffd, // 23
-    // 0x9fff, // 24
-    // 0x9cff, // 25
-    // 0x98ff, // 26
-    // 0xa5ff, // 27
-    // 0xb3fc, // 28
-    // 0xc3f9, // 29
-    // 0xd6f6, // 2a
-    // 0xd9f4, // 2b
-    // 0xddf4, // 2c
-    // 0x55f5, // 2d
-    // 0x00f0, // 2e
-    // 0x00f0, // 2f
-    // 0xFFFF, // 30
-    // 0xeffc, // 31
-    // 0xeffe, // 32
-    // 0xefff, // 33
-    // 0xefff, // 34
-    // 0xdfff, // 35
-    // 0xddff, // 36
-    // 0xecff, // 37
-    // 0xebff, // 38
-    // 0xfbfd, // 39
-    // 0xfcfc, // 3a
-    // 0xfdfb, // 3b
-    // 0xfffb, // 3c
-    // 0xccfc, // 3d
-    // 0x00f0, // 3e
-    // 0x00f0
-    }; // 3f
+
+};    
 
 int getbuttons() {
   srv.inputService.handleJoypad();
+  if ((PRESSED_KEY(ButtonID::BTN_SELECT) ? GPSELECT : 0)
+      && (PRESSED_KEY(ButtonID::BTN_START) ? GPSTART : 0)) {
+    reset();
+  }
   int key = (PRESSED_KEY(ButtonID::BTN_LEFT) ? GPLEFT : 0)
       | (PRESSED_KEY(ButtonID::BTN_RIGHT) ? GPRIGHT : 0)
       | (PRESSED_KEY(ButtonID::BTN_UP) ? GPUP : 0)
@@ -415,8 +376,4 @@ void InfoNES_PadState(DWORD* pdwPad1, DWORD* pdwPad2, DWORD* pdwSystem) {
   prevButtons = v;
 
   *pdwSystem = reset ? PAD_SYS_QUIT : 0;
-  if (dst != 0) {
-    Serial.printf("InfoNES_PadState = ");
-    Serial.println(dst, BIN);
-  }
 }

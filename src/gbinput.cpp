@@ -28,6 +28,7 @@ void GBInput::afterHandleJoypadCallback() {
       cmd.cmd = CORE_CMD_IDLE_SET;
       multicore_fifo_push_blocking(cmd.full);
       Serial.printf("I Scaling mode: = %d\n", scalingMode);
+      delay(100);
     }
   }
 }

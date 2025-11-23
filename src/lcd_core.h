@@ -43,6 +43,9 @@ static int lcd_line_busy = 0;
 
 #define IS_REPEATED(pos) ((pos % 2) || (pos % 6 == 0))
 
+extern GameType gameType;
+extern volatile ScalingMode scalingMode; 
+
 void lcd_init(bool isCore1);
 void lcd_draw_line(struct gb_s* gb, const uint16_t* pixels, const uint_fast8_t line);
 

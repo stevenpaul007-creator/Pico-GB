@@ -19,7 +19,9 @@ uint_fast16_t max_lcd_width = LCD_WIDTH;
 uint_fast16_t max_lcd_height = LCD_HEIGHT;
 
 
+GameType gameType = GameType_GB;
 volatile ScalingMode scalingMode = ScalingMode::NORMAL; 
+
 static void calcExtraLineTable() {
   uint8_t offset = 0;
   for (uint8_t line = 0; line < LCD_HEIGHT; ++line) {
@@ -62,7 +64,7 @@ void lcd_draw_line(struct gb_s* gb, const uint16_t* pixels, const uint_fast8_t l
   while (__atomic_load_n(&lcd_line_busy, __ATOMIC_SEQ_CST))
     tight_loop_contents();
   if(pixels != pixels_buffer){
-    memcpy(pixels_buffer, pixels, max_lcd_width);
+    memcpy(pixels_buffer, pixels, max_lcd_width*sizeof(uint16_t));
   }
   /* Populate command. */
   cmd.cmd = CORE_CMD_LCD_LINE;
@@ -91,6 +93,7 @@ void lcd_pushLine(uint16_t screenColOffset, uint16_t screenLineOffset, uint16_t 
 #else
   uint32_t offset = screenColOffset + (uint32_t)(screenLineOffset + line) * DISPLAY_WIDTH;
   memcpy(&framebuffer[offset], pixels, width * sizeof(uint16_t));
+  // memcpy(&framebuffer[offset], pixels, max_lcd_width*2);
 #endif
 }
 #else // !ENABLE_LCD_FRAMEBUFFER
@@ -186,7 +189,7 @@ void lcd_swap_buffers() {
 void lcd_write_framebuffer_to_screen() {
   
   uint16_t* framebuffer = framebuffers[activeFramebufferId];
-  tft.setSwapBytes(true);
+  tft.setSwapBytes(gameType == GameType_GB);
 #if ENABLE_LCD_DMA
   //优化双缓冲策略：检查DMA状态，避免阻塞
   if (tft.dmaBusy()) {
@@ -194,6 +197,11 @@ void lcd_write_framebuffer_to_screen() {
     return;
   }
   lcd_swap_buffers();
+  
+  // if (gameType == GameType_NES) {
+  //   tft.writecommand(0x36);
+  //   tft.writedata(0xE0);//NES use BGR mode  0x08|0x20|0x40|0x80
+  // }
   tft.startWrite(); // manual start required as DMA transfer is asynchronous
   tft.pushImageDMA(0, 0, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT, framebuffer);
   // tft.endWrite(); // do not call endWrite(), as it will wait for the DMA transfer to finish, which results in no performance gain
@@ -218,7 +226,7 @@ void lcd_clear() {
 
 void core1_lcd_draw_line(const uint_fast8_t line) {
   // uint16_t fb[max_lcd_width];
-  if(&gb){
+  if(gameType == GameType_GB){
     if (gb.cgb.cgbMode) {
       for (unsigned int x = 0; x < max_lcd_width; x++) {
         pixels_buffer[x] = gb.cgb.fixPalette[pixels_buffer[x]];
