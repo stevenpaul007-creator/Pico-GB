@@ -78,6 +78,12 @@ static uint32_t fps = 0;
 // WORD scanlinebuffer0[SCANLINEPIXELS * SCANLINEBUFFERLINES];
 // WORD* scanlinesbuffers[] = {scanlinebuffer0};
 
+#define AUDIO_BUF_SIZE 2048
+BYTE snd_buf[AUDIO_BUF_SIZE]={0};
+int buf_residue_size=AUDIO_BUF_SIZE;
+volatile bool SoundOutputBuilding = true;
+
+
 // final wave buffer
 int fw_wr, fw_rd;
 int final_wave[2][735 + 1]; /* 44100 (just in case)/ 60 = 735 samples per sync */
@@ -102,11 +108,12 @@ void InfoNES_SoundClose() {
 }
 
 int InfoNES_GetSoundBufferSize() {
-  return 735;
+  return 2048;
 }
 
 void InfoNES_SoundOutput(int samples, BYTE* wave1, BYTE* wave2, BYTE* wave3, BYTE* wave4, BYTE* wave5) {
   // Serial.printf("I InfoNES_SoundOutput samples=%d\r\n", samples);
+  /*
   int i;
 
   for (i = 0; i < samples; i++) {
@@ -114,6 +121,44 @@ void InfoNES_SoundOutput(int samples, BYTE* wave1, BYTE* wave2, BYTE* wave3, BYT
   }
   final_wave[fw_wr][i] = -1;
   fw_wr = 1 - fw_wr;
+  */
+
+  
+    static int test_i=0;
+
+    SoundOutputBuilding = true;
+    while (samples)
+    {
+        auto n = std::min<int>(samples, buf_residue_size);
+        // auto n = samples;
+        if (!n)
+        {
+            return;
+        }
+        // auto p = ring.getWritePointer();
+        auto p = &snd_buf[AUDIO_BUF_SIZE-buf_residue_size];
+        // auto p = snd_buf;
+
+        int ct = n;
+        while (ct--)
+        {
+            uint8_t w1 = *wave1++;
+            uint8_t w2 = *wave2++;
+            uint8_t w3 = *wave3++; // triangle
+            uint8_t w4 = *wave4++; // noise
+            uint8_t w5 = *wave5++; // DPCM
+
+             *p++ =  (((w1 * 2 + w2 * 2)/2)  + w3 * 1  + w4 * 1 * 4 + w5 * 2 * 1) / 4;
+        }
+
+        // ring.advanceWritePointer(n);
+        samples -= n;
+        buf_residue_size -= n;
+        // snd_buf should not be full, just for case
+        if(buf_residue_size <= 0) buf_residue_size = AUDIO_BUF_SIZE;
+        
+    }
+    SoundOutputBuilding = false;
 }
 static void __not_in_flash_func(speed_control)(void) {
   static uint64_t last_blink = 0;
@@ -305,18 +350,37 @@ int nesMain() {
 // converted from http://wiki.picosystem.com/en/tools/image-converter
 
 /*BGR565*/
-// #define CC(BGR) (BGR & 32767)
+// // #define CC(BGR) (BGR & 32767)
+// #define CC(rgb) ((((rgb) & 0xFF00) >> 8) | (((rgb) & 0x00FF) << 8))
+// const WORD __not_in_flash_func(NesPalette)[64] = {
+// CC(0xAE73),CC(0xD120),CC(0x1500),CC(0x1340),CC(0x0E88),CC(0x02A8),CC(0x00A0),CC(0x4078),
+// CC(0x6041),CC(0x2002),CC(0x8002),CC(0xE201),CC(0xEB19),CC(0x0000),CC(0x0000),CC(0x0000),
+// CC(0xF7BD),CC(0x9D03),CC(0xDD21),CC(0x1E80),CC(0x17B8),CC(0x0BE0),CC(0x40D9),CC(0x61CA),
+// CC(0x808B),CC(0xA004),CC(0x4005),CC(0x8704),CC(0x1104),CC(0x0000),CC(0x0000),CC(0x0000),
+// CC(0xFFFF),CC(0xFF3D),CC(0xBF5C),CC(0x5FA4),CC(0xDFF3),CC(0xB6FB),CC(0xACFB),CC(0xC7FC),
+// CC(0xE7F5),CC(0x8286),CC(0xE94E),CC(0xD35F),CC(0x5B07),CC(0x0000),CC(0x0000),CC(0x0000),
+// CC(0xFFFF),CC(0x3FAF),CC(0xBFC6),CC(0x5FD6),CC(0x3FFE),CC(0x3BFE),CC(0xF6FD),CC(0xD5FE),
+// CC(0x34FF),CC(0xF4E7),CC(0x97AF),CC(0xF9B7),CC(0xFE9F),CC(0x0000),CC(0x0000),CC(0x0000)
+// };    
+
 #define CC(rgb) ((((rgb) & 0xFF00) >> 8) | (((rgb) & 0x00FF) << 8))
+
 const WORD __not_in_flash_func(NesPalette)[64] = {
-CC(0xAE73),CC(0xD120),CC(0x1500),CC(0x1340),CC(0x0E88),CC(0x02A8),CC(0x00A0),CC(0x4078),
-CC(0x6041),CC(0x2002),CC(0x8002),CC(0xE201),CC(0xEB19),CC(0x0000),CC(0x0000),CC(0x0000),
-CC(0xF7BD),CC(0x9D03),CC(0xDD21),CC(0x1E80),CC(0x17B8),CC(0x0BE0),CC(0x40D9),CC(0x61CA),
-CC(0x808B),CC(0xA004),CC(0x4005),CC(0x8704),CC(0x1104),CC(0x0000),CC(0x0000),CC(0x0000),
-CC(0xFFFF),CC(0xFF3D),CC(0xBF5C),CC(0x5FA4),CC(0xDFF3),CC(0xB6FB),CC(0xACFB),CC(0xC7FC),
-CC(0xE7F5),CC(0x8286),CC(0xE94E),CC(0xD35F),CC(0x5B07),CC(0x0000),CC(0x0000),CC(0x0000),
-CC(0xFFFF),CC(0x3FAF),CC(0xBFC6),CC(0x5FD6),CC(0x3FFE),CC(0x3BFE),CC(0xF6FD),CC(0xD5FE),
-CC(0x34FF),CC(0xF4E7),CC(0x97AF),CC(0xF9B7),CC(0xFE9F),CC(0x0000),CC(0x0000),CC(0x0000)
-};    
+// Original values: 0xAE73, 0xD120, 0x1500, ... (reds were 1st, 2nd, 12th) red to black
+// Blacks: 0x0000
+CC(0x0000),CC(0x0000),CC(0x1500),CC(0x1340),CC(0x0E88),CC(0x02A8),CC(0x00A0),CC(0x4078),
+CC(0x6041),CC(0x2002),CC(0x8002),CC(0x0000),CC(0xEB19),CC(0x0000),CC(0x0000),CC(0x0000),
+// Original values: 0xF7BD, 0x9D03, 0xDD21, ...
+CC(0x0000),CC(0x0000),CC(0xDD21),CC(0x1E80),CC(0x17B8),CC(0x0BE0),CC(0x40D9),CC(0x61CA),
+CC(0x808B),CC(0xA004),CC(0x4005),CC(0x0000),CC(0x1104),CC(0x0000),CC(0x0000),CC(0x0000),
+// Original values: 0xFFFF, 0xFF3D, 0xBF5C, ... (These are white/pinks, not typically the main reds, but included for completeness)
+CC(0xFFFF),CC(0x0000),CC(0xBF5C),CC(0x5FA4),CC(0xDFF3),CC(0xB6FB),CC(0xACFB),CC(0xC7FC),
+CC(0xE7F5),CC(0x8286),CC(0xE94E),CC(0x0000),CC(0x5B07),CC(0x0000),CC(0x0000),CC(0x0000),
+// Original values: 0xFFFF, 0x3FAF, 0xBFC6, ...
+CC(0xFFFF),CC(0x0000),CC(0xBFC6),CC(0x5FD6),CC(0x3FFE),CC(0x3BFE),CC(0xF6FD),CC(0xD5FE),
+CC(0x34FF),CC(0xF4E7),CC(0x97AF),CC(0x0000),CC(0xFE9F),CC(0x0000),CC(0x0000),CC(0x0000)
+};
+
 // #define CC(rgb) ((((rgb) & 0xFF00) >> 8) | (((rgb) & 0x00FF) << 8))
 // const WORD __not_in_flash_func(NesPalette)[] = {
 //     CC(0x0000), CC(0x1071), CC(0x0015), CC(0x2013), CC(0x440e), CC(0x5402), CC(0x5000), CC(0x3c20),
