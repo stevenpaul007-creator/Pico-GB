@@ -64,7 +64,7 @@ void lcd_draw_line(struct gb_s* gb, const uint16_t* pixels, const uint_fast8_t l
   while (__atomic_load_n(&lcd_line_busy, __ATOMIC_SEQ_CST))
     tight_loop_contents();
   if(pixels != pixels_buffer){
-    memcpy(pixels_buffer, pixels, max_lcd_width*sizeof(uint16_t));
+    memcpy(pixels_buffer, pixels, max_lcd_width*sizeof(uint16_t));// TODO need to *2 for nes
   }
   /* Populate command. */
   cmd.cmd = CORE_CMD_LCD_LINE;
@@ -105,7 +105,10 @@ void lcd_pushLine(uint16_t screenColOffset, uint16_t screenLineOffset, uint16_t 
     tft.dmaWait();
   }
   memcpy(linebuffer, pixels, width * sizeof(uint16_t));
-  tft.setSwapBytes(true);
+  // For NES DMA transfers the byte-swap setting must match the DMA bswap
+  // configuration. Use false here to keep the word order expected by the
+  // RP2040 DMA + ILI9341 pipeline on this board.
+  tft.setSwapBytes(false);
   tft.startWrite(); // manual start required as DMA transfer is asynchronous
   tft.pushPixelsDMA((uint16_t*) linebuffer, width);
   //tft.endWrite(); // do not call endWrite(), as it will wait for the DMA transfer to finish, which results in no performance gain

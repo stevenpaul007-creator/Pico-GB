@@ -139,7 +139,6 @@
 // normally necessary. If all fonts are loaded the extra FLASH space required is
 // about 17Kbytes. To save FLASH space only enable the fonts you need!
 #define LOAD_FONT2
-#define LOAD_FONT4
 //#define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
 #if 0
 #define LOAD_FONT2  // Font 2. Small 16 pixel high font, needs ~3534 bytes in FLASH, 96 characters

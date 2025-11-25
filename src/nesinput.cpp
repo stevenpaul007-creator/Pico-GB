@@ -79,10 +79,9 @@ static uint32_t fps = 0;
 // WORD* scanlinesbuffers[] = {scanlinebuffer0};
 
 #define AUDIO_BUF_SIZE 2048
-BYTE snd_buf[AUDIO_BUF_SIZE]={0};
-int buf_residue_size=AUDIO_BUF_SIZE;
+BYTE snd_buf[AUDIO_BUF_SIZE] = {0};
+int buf_residue_size = AUDIO_BUF_SIZE;
 volatile bool SoundOutputBuilding = true;
-
 
 // final wave buffer
 int fw_wr, fw_rd;
@@ -123,42 +122,38 @@ void InfoNES_SoundOutput(int samples, BYTE* wave1, BYTE* wave2, BYTE* wave3, BYT
   fw_wr = 1 - fw_wr;
   */
 
-  
-    static int test_i=0;
+  static int test_i = 0;
 
-    SoundOutputBuilding = true;
-    while (samples)
-    {
-        auto n = std::min<int>(samples, buf_residue_size);
-        // auto n = samples;
-        if (!n)
-        {
-            return;
-        }
-        // auto p = ring.getWritePointer();
-        auto p = &snd_buf[AUDIO_BUF_SIZE-buf_residue_size];
-        // auto p = snd_buf;
-
-        int ct = n;
-        while (ct--)
-        {
-            uint8_t w1 = *wave1++;
-            uint8_t w2 = *wave2++;
-            uint8_t w3 = *wave3++; // triangle
-            uint8_t w4 = *wave4++; // noise
-            uint8_t w5 = *wave5++; // DPCM
-
-             *p++ =  (((w1 * 2 + w2 * 2)/2)  + w3 * 1  + w4 * 1 * 4 + w5 * 2 * 1) / 4;
-        }
-
-        // ring.advanceWritePointer(n);
-        samples -= n;
-        buf_residue_size -= n;
-        // snd_buf should not be full, just for case
-        if(buf_residue_size <= 0) buf_residue_size = AUDIO_BUF_SIZE;
-        
+  SoundOutputBuilding = true;
+  while (samples) {
+    auto n = std::min<int>(samples, buf_residue_size);
+    // auto n = samples;
+    if (!n) {
+      return;
     }
-    SoundOutputBuilding = false;
+    // auto p = ring.getWritePointer();
+    auto p = &snd_buf[AUDIO_BUF_SIZE - buf_residue_size];
+    // auto p = snd_buf;
+
+    int ct = n;
+    while (ct--) {
+      uint8_t w1 = *wave1++;
+      uint8_t w2 = *wave2++;
+      uint8_t w3 = *wave3++; // triangle
+      uint8_t w4 = *wave4++; // noise
+      uint8_t w5 = *wave5++; // DPCM
+
+      *p++ = (((w1 * 2 + w2 * 2) / 2) + w3 * 1 + w4 * 1 * 4 + w5 * 2 * 1) / 4;
+    }
+
+    // ring.advanceWritePointer(n);
+    samples -= n;
+    buf_residue_size -= n;
+    // snd_buf should not be full, just for case
+    if (buf_residue_size <= 0)
+      buf_residue_size = AUDIO_BUF_SIZE;
+  }
+  SoundOutputBuilding = false;
 }
 static void __not_in_flash_func(speed_control)(void) {
   static uint64_t last_blink = 0;
@@ -275,8 +270,15 @@ bool parseROM(const uint8_t* nesFile) {
 
 bool loadAndReset() {
   Serial.printf("loadAndReset\n");
+  uint8_t* romPtr;
 
-  if (!parseROM(psram_rom)) {
+#if ENABLE_RP2040_PSRAM
+  romPtr = psram_rom;
+#else
+  romPtr = RS_rom;
+#endif
+
+  if (!parseROM(romPtr)) {
     Serial.printf("NES file parse error.\n");
     Serial.flush();
     return false;
@@ -306,15 +308,7 @@ void __not_in_flash_func(InfoNES_PostDrawLine)(int line, bool frommenu) {
 }
 
 void __not_in_flash_func(InfoNES_PreDrawLine)(int line) {
-
   InfoNES_SetLineBuffer(pixels_buffer, NES_DISP_WIDTH);
-  // if (line == 100) {
-  //   // display pixel_buffer to serial monitor for debugging
-  //   for (int i = 0; i < 320; i++) {
-  //     Serial.printf("%04X ", pixels_buffer[i]);
-  //   }
-  //   Serial.printf("\n");
-  // }
 }
 
 void initJoypad() {
@@ -349,50 +343,16 @@ int nesMain() {
 // Colors are stored as ggggbbbbaaaarrrr
 // converted from http://wiki.picosystem.com/en/tools/image-converter
 
-/*BGR565*/
-// // #define CC(BGR) (BGR & 32767)
-// #define CC(rgb) ((((rgb) & 0xFF00) >> 8) | (((rgb) & 0x00FF) << 8))
-// const WORD __not_in_flash_func(NesPalette)[64] = {
-// CC(0xAE73),CC(0xD120),CC(0x1500),CC(0x1340),CC(0x0E88),CC(0x02A8),CC(0x00A0),CC(0x4078),
-// CC(0x6041),CC(0x2002),CC(0x8002),CC(0xE201),CC(0xEB19),CC(0x0000),CC(0x0000),CC(0x0000),
-// CC(0xF7BD),CC(0x9D03),CC(0xDD21),CC(0x1E80),CC(0x17B8),CC(0x0BE0),CC(0x40D9),CC(0x61CA),
-// CC(0x808B),CC(0xA004),CC(0x4005),CC(0x8704),CC(0x1104),CC(0x0000),CC(0x0000),CC(0x0000),
-// CC(0xFFFF),CC(0xFF3D),CC(0xBF5C),CC(0x5FA4),CC(0xDFF3),CC(0xB6FB),CC(0xACFB),CC(0xC7FC),
-// CC(0xE7F5),CC(0x8286),CC(0xE94E),CC(0xD35F),CC(0x5B07),CC(0x0000),CC(0x0000),CC(0x0000),
-// CC(0xFFFF),CC(0x3FAF),CC(0xBFC6),CC(0x5FD6),CC(0x3FFE),CC(0x3BFE),CC(0xF6FD),CC(0xD5FE),
-// CC(0x34FF),CC(0xF4E7),CC(0x97AF),CC(0xF9B7),CC(0xFE9F),CC(0x0000),CC(0x0000),CC(0x0000)
-// };    
-
-#define CC(rgb) ((((rgb) & 0xFF00) >> 8) | (((rgb) & 0x00FF) << 8))
-
+#define CC(x) (x & 32767)
 const WORD __not_in_flash_func(NesPalette)[64] = {
-// Original values: 0xAE73, 0xD120, 0x1500, ... (reds were 1st, 2nd, 12th) red to black
-// Blacks: 0x0000
-CC(0x0000),CC(0x0000),CC(0x1500),CC(0x1340),CC(0x0E88),CC(0x02A8),CC(0x00A0),CC(0x4078),
-CC(0x6041),CC(0x2002),CC(0x8002),CC(0x0000),CC(0xEB19),CC(0x0000),CC(0x0000),CC(0x0000),
-// Original values: 0xF7BD, 0x9D03, 0xDD21, ...
-CC(0x0000),CC(0x0000),CC(0xDD21),CC(0x1E80),CC(0x17B8),CC(0x0BE0),CC(0x40D9),CC(0x61CA),
-CC(0x808B),CC(0xA004),CC(0x4005),CC(0x0000),CC(0x1104),CC(0x0000),CC(0x0000),CC(0x0000),
-// Original values: 0xFFFF, 0xFF3D, 0xBF5C, ... (These are white/pinks, not typically the main reds, but included for completeness)
-CC(0xFFFF),CC(0x0000),CC(0xBF5C),CC(0x5FA4),CC(0xDFF3),CC(0xB6FB),CC(0xACFB),CC(0xC7FC),
-CC(0xE7F5),CC(0x8286),CC(0xE94E),CC(0x0000),CC(0x5B07),CC(0x0000),CC(0x0000),CC(0x0000),
-// Original values: 0xFFFF, 0x3FAF, 0xBFC6, ...
-CC(0xFFFF),CC(0x0000),CC(0xBFC6),CC(0x5FD6),CC(0x3FFE),CC(0x3BFE),CC(0xF6FD),CC(0xD5FE),
-CC(0x34FF),CC(0xF4E7),CC(0x97AF),CC(0x0000),CC(0xFE9F),CC(0x0000),CC(0x0000),CC(0x0000)
-};
-
-// #define CC(rgb) ((((rgb) & 0xFF00) >> 8) | (((rgb) & 0x00FF) << 8))
-// const WORD __not_in_flash_func(NesPalette)[] = {
-//     CC(0x0000), CC(0x1071), CC(0x0015), CC(0x2013), CC(0x440e), CC(0x5402), CC(0x5000), CC(0x3c20),
-//     CC(0x20a0), CC(0x0100), CC(0x0140), CC(0x00e2), CC(0x0ceb), CC(0x0000), CC(0x0000), CC(0x0000),
-//     CC(0x5ef7), CC(0x01dd), CC(0x10fd), CC(0x401e), CC(0x5c17), CC(0x700b), CC(0x6ca0), CC(0x6521),
-//     CC(0x45c0), CC(0x0240), CC(0x02a0), CC(0x0247), CC(0x0211), CC(0x0000), CC(0x0000), CC(0x0000),
-//     CC(0x7fff), CC(0x1eff), CC(0x2e5f), CC(0x223f), CC(0x79ff), CC(0x7dd6), CC(0x7dcc), CC(0x7e67),
-//     CC(0x7ae7), CC(0x4342), CC(0x2769), CC(0x2ff3), CC(0x03bb), CC(0x0000), CC(0x0000), CC(0x0000),
-//     CC(0x7fff), CC(0x579f), CC(0x635f), CC(0x6b3f), CC(0x7f1f), CC(0x7f1b), CC(0x7ef6), CC(0x7f75),
-//     CC(0x7f94), CC(0x73f4), CC(0x57d7), CC(0x5bf9), CC(0x4ffe), CC(0x0000), CC(0x0000), CC(0x0000)
-// };
-
+    CC(0xAE73), CC(0xD120), CC(0x1500), CC(0x1340), CC(0x0E88), CC(0x02A8), CC(0x00A0), CC(0x4078),
+    CC(0x6041), CC(0x2002), CC(0x8002), CC(0xE201), CC(0xEB19), CC(0x0000), CC(0x0000), CC(0x0000),
+    CC(0xF7BD), CC(0x9D03), CC(0xDD21), CC(0x1E80), CC(0x17B8), CC(0x0BE0), CC(0x40D9), CC(0x61CA),
+    CC(0x808B), CC(0xA004), CC(0x4005), CC(0x8704), CC(0x1104), CC(0x0000), CC(0x0000), CC(0x0000),
+    CC(0xFFFF), CC(0xFF3D), CC(0xBF5C), CC(0x5FA4), CC(0xDFF3), CC(0xB6FB), CC(0xACFB), CC(0xC7FC),
+    CC(0xE7F5), CC(0x8286), CC(0xE94E), CC(0xD35F), CC(0x5B07), CC(0x0000), CC(0x0000), CC(0x0000),
+    CC(0xFFFF), CC(0x3FAF), CC(0xBFC6), CC(0x5FD6), CC(0x3FFE), CC(0x3BFE), CC(0xF6FD), CC(0xD5FE),
+    CC(0x34FF), CC(0xF4E7), CC(0x97AF), CC(0xF9B7), CC(0xFE9F), CC(0x0000), CC(0x0000), CC(0x0000)};
 
 int getbuttons() {
   srv.inputService.handleJoypad();
@@ -420,14 +380,6 @@ static bool jumptomenu = false;
  * check buttons
  */
 void InfoNES_PadState(DWORD* pdwPad1, DWORD* pdwPad2, DWORD* pdwSystem) {
-
-  // moved variables outside function body because prevButtons gets initialized to 0 everytime the function is called.
-  // This is strange because a static variable inside a function is only initialsed once and retains it's value
-  // throughout different function calls.
-  // Am i missing something?
-  // static DWORD prevButtons = 0;
-  // static int rapidFireMask = 0;
-  // static int rapidFireCounter = 0;
 
   int v = getbuttons();
 
