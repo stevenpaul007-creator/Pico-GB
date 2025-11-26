@@ -43,6 +43,26 @@ GBInput gbInput;
 
 uint_fast32_t frames = 0;
 
+void overclock() {
+  const unsigned vco = 1596 * 1000 * 1000; // 266MHz
+  const unsigned div1 = 6, div2 = 1;
+
+  vreg_set_voltage(VREG_VOLTAGE_1_15);
+  sleep_ms(2);
+  set_sys_clock_pll(vco, div1, div2);
+  sleep_ms(2);
+}
+
+void overclock252MHz(){
+  //*
+  uint32_t CPUFreqKHz = 252000;
+
+  vreg_set_voltage(VREG_VOLTAGE_1_20);
+  sleep_ms(100);
+  set_sys_clock_khz(CPUFreqKHz, true);
+  //*/
+}
+
 void startGBEmulator() {
   gbInput.initJoypad();
   scalingMode = ScalingMode::STRETCH;
@@ -106,26 +126,6 @@ void reset(uint32_t sleepMs) {
 
 void halt() {
   while (true) {}
-}
-
-void overclock() {
-  const unsigned vco = 1596 * 1000 * 1000; // 266MHz
-  const unsigned div1 = 6, div2 = 1;
-
-  vreg_set_voltage(VREG_VOLTAGE_1_15);
-  sleep_ms(2);
-  set_sys_clock_pll(vco, div1, div2);
-  sleep_ms(2);
-}
-
-void overclock252MHz(){
-  //*
-  uint32_t CPUFreqKHz = 252000;
-
-  vreg_set_voltage(VREG_VOLTAGE_1_20);
-  sleep_ms(100);
-  set_sys_clock_khz(CPUFreqKHz, true);
-  //*/
 }
 
 void checkUpdate(){
