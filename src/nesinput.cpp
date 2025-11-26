@@ -78,9 +78,9 @@ static uint32_t fps = 0;
 // WORD scanlinebuffer0[SCANLINEPIXELS * SCANLINEBUFFERLINES];
 // WORD* scanlinesbuffers[] = {scanlinebuffer0};
 
-#define AUDIO_BUF_SIZE 2048
-BYTE snd_buf[AUDIO_BUF_SIZE] = {0};
-int buf_residue_size = AUDIO_BUF_SIZE;
+#define AUDIO_BUF_SIZE AUDIO_BUFFER_SIZE_BYTES
+static int16_t snd_buf[AUDIO_BUF_SIZE] = {0};
+int buf_residue_size=AUDIO_BUF_SIZE;
 volatile bool SoundOutputBuilding = true;
 
 // final wave buffer
@@ -107,11 +107,14 @@ void InfoNES_SoundClose() {
 }
 
 int InfoNES_GetSoundBufferSize() {
-  return 2048;
+  return AUDIO_BUF_SIZE;
 }
 
-void InfoNES_SoundOutput(int samples, BYTE* wave1, BYTE* wave2, BYTE* wave3, BYTE* wave4, BYTE* wave5) {
-  // Serial.printf("I InfoNES_SoundOutput samples=%d\r\n", samples);
+/*
+ *  call from InfoNES_pAPUHsync
+ */
+void __not_in_flash_func(InfoNES_SoundOutput)(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3, BYTE *wave4, BYTE *wave5){
+  // Producer: write 8-bit mixed samples into circular buffer
   /*
   int i;
 
@@ -125,35 +128,39 @@ void InfoNES_SoundOutput(int samples, BYTE* wave1, BYTE* wave2, BYTE* wave3, BYT
   static int test_i = 0;
 
   SoundOutputBuilding = true;
+
   while (samples) {
-    auto n = std::min<int>(samples, buf_residue_size);
-    // auto n = samples;
-    if (!n) {
-      return;
-    }
-    // auto p = ring.getWritePointer();
-    auto p = &snd_buf[AUDIO_BUF_SIZE - buf_residue_size];
-    // auto p = snd_buf;
+        // auto &ring = dvi_->getAudioRingBuffer();
+        // auto n = std::min<int>(samples, ring.getWritableSize());
+        auto n = std::min<int>(samples, buf_residue_size);
+        // auto n = samples;
+        if (!n)
+        {
+            return;
+        }
+        // auto p = ring.getWritePointer();
+        auto p = &snd_buf[AUDIO_BUF_SIZE-buf_residue_size];
+        // auto p = snd_buf;
 
-    int ct = n;
-    while (ct--) {
-      uint8_t w1 = *wave1++;
-      uint8_t w2 = *wave2++;
-      uint8_t w3 = *wave3++; // triangle
-      uint8_t w4 = *wave4++; // noise
-      uint8_t w5 = *wave5++; // DPCM
+        int ct = n;
+        while (ct--)
+        {
+            uint8_t w1 = *wave1++;
+            uint8_t w2 = *wave2++;
+            uint8_t w3 = *wave3++; // triangle
+            uint8_t w4 = *wave4++; // noise
+            uint8_t w5 = *wave5++; // DPCM
+             *p++ =  (((w1 * 2 + w2 * 2)/2)  + w3 * 1  + w4 * 1 * 4 + w5 * 2 * 1) / 4;
+        }
 
-      *p++ = (((w1 * 2 + w2 * 2) / 2) + w3 * 1 + w4 * 1 * 4 + w5 * 2 * 1) / 4;
-    }
-
-    // ring.advanceWritePointer(n);
-    samples -= n;
-    buf_residue_size -= n;
-    // snd_buf should not be full, just for case
-    if (buf_residue_size <= 0)
-      buf_residue_size = AUDIO_BUF_SIZE;
+        // ring.advanceWritePointer(n);
+        samples -= n;
+        buf_residue_size -= n;
+        // snd_buf should not be full, just for case
+        if(buf_residue_size <= 0) buf_residue_size = AUDIO_BUF_SIZE;
   }
   SoundOutputBuilding = false;
+  // if(samples)
 }
 static void __not_in_flash_func(speed_control)(void) {
   static uint64_t last_blink = 0;
@@ -170,7 +177,10 @@ static void __not_in_flash_func(speed_control)(void) {
 }
 
 int InfoNES_LoadFrame() {
-  speed_control();
+  //speed_control();
+  if(!SoundOutputBuilding){
+    srv.soundService.handleSoundLoop();
+  }
   auto count = frame++;
 #ifdef LED_ENABLED
   auto onOff = hw_divider_s32_quotient_inlined(count, 60) & 1;
@@ -334,7 +344,6 @@ int nesMain() {
   // loadState();
   return 0;
 }
-
 // color table in aaaarrrrggggbbbb format
 //  a = alpha - 4 bit
 //  r = red - 4 bit
@@ -403,4 +412,39 @@ void InfoNES_PadState(DWORD* pdwPad1, DWORD* pdwPad2, DWORD* pdwSystem) {
   prevButtons = v;
 
   *pdwSystem = reset ? PAD_SYS_QUIT : 0;
+}
+
+
+void nesAudioCallback(void* userdata, int16_t* stream, size_t len) {
+  // Zero output buffer first
+  memset(stream, 0, len);
+
+  // How many 8-bit samples are available in snd_buf
+  int available_bytes = AUDIO_BUF_SIZE - buf_residue_size;
+  if (available_bytes <= 0) {
+    return;
+  }
+
+  // Stream expects 16-bit stereo interleaved samples (2 channels), len is bytes.
+  // Each input byte will be expanded to two int16_t (left/right), consuming 4 bytes in stream.
+  int max_output_samples = len / 4; // number of input bytes we can convert
+  int samples_to_copy = (int)std::min<int>(available_bytes, max_output_samples);
+
+  for (int i = 0; i < samples_to_copy; ++i) {
+    int16_t in = snd_buf[i];
+    // Convert unsigned 8-bit [0..255] -> signed 16-bit roughly centered: [-32768..32767]
+    int16_t s = (in - 128) << 8;
+    // write stereo interleaved
+    stream[2 * i] = s;
+    stream[2 * i + 2] = s;
+  }
+
+  // Remove consumed bytes from snd_buf by memmoving remaining data to start
+  int remaining = available_bytes - samples_to_copy;
+  if (remaining > 0) {
+    memmove(snd_buf, &snd_buf[samples_to_copy], remaining);
+  }
+
+  // update buffer residue: we've freed samples_to_copy bytes
+  buf_residue_size += samples_to_copy;
 }

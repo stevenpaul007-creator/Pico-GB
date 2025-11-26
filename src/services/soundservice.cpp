@@ -38,8 +38,10 @@ void SoundService::initSound() {
 
 void SoundService::handleSoundLoop() {
   if (i2s_config.volume != 16) {
-    audio_callback(NULL, (int16_t*)stream, AUDIO_BUFFER_SIZE_BYTES);
-    i2s_dma_write(&i2s_config, (int16_t*)stream);
+    if(_audioCallback){
+      _audioCallback(NULL, (int16_t*)stream, AUDIO_BUFFER_SIZE_BYTES);
+      i2s_dma_write(&i2s_config, (int16_t*)stream);
+    }
   }
 }
 
@@ -57,6 +59,11 @@ void SoundService::decreaseVolume() {
   if (i2s_config.volume < 16) {
     i2s_config.volume++;
   }
+}
+
+void SoundService::setAudioCallback(std::function<void((void *userdata, int16_t *stream, size_t len))> audioCallback) {
+  _audioCallback = audioCallback;
+  Serial.println("I Sound callback set.");
 }
 
 #endif

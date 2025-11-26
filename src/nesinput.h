@@ -17,3 +17,4 @@
 
 void initJoypad();
 int nesMain();
+void nesAudioCallback(void *userdata, int16_t *stream, size_t len);
