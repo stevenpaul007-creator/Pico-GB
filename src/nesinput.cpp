@@ -1,35 +1,15 @@
 #include "nesinput.h"
-#include <hardware/vreg.h>
 
 #include "allservices.h"
 #include "hardware/divider.h"
 #include "lcd_core.h"
-static constexpr uintptr_t NES_FILE_ADDR = 0x10110000; // Location of .nes rom or tar archive with .nes roms
-static constexpr uintptr_t NES_BATTERY_SAVE_ADDR = 0x100D0000; // 256K
-                                                               //  = 8K   D0000 - 0D1FFF for persisting some variables after reboot
-                                                               //  = 248K D2000 - 10FFFF for save games (=31 savegames MAX)
-                                                               // grows towards NES_FILE_ADDR
 
-bool fps_enabled = false;
+#include <hardware/vreg.h>
 static auto frame = 0;
 static uint32_t start_tick_us = 0;
 static uint32_t fps = 0;
 
-// Positions in SRAM for storing state variables
-#define STATUSINDICATORPOS 0
-#define GAMEINDEXPOS 3
-#define ADVANCEPOS 4
-#define VOLUMEINDICATORPOS 5
-#define MODEPOS 8
-#define VOLUMEPOS 9
-#define BACKLIGHTPOS 10
-#define SCANLINEBUFFERLINES 24 // Max 40
-#define SCANLINEPIXELS 240
-#define SCANLINEBYTESIZE (SCANLINEPIXELS * sizeof(WORD))
-// WORD scanlinebuffer0[SCANLINEPIXELS * SCANLINEBUFFERLINES];
-// WORD* scanlinesbuffers[] = {scanlinebuffer0};
-
-#define AUDIO_BUF_SIZE AUDIO_BUFFER_SIZE_BYTES
+#define AUDIO_BUF_SIZE 2048
 static int16_t snd_buf[AUDIO_BUF_SIZE] = {0};
 int buf_residue_size = AUDIO_BUF_SIZE;
 volatile bool SoundOutputBuilding = true;
@@ -37,7 +17,6 @@ volatile bool SoundOutputBuilding = true;
 // micomenu
 bool micromenu;
 
-bool saveSettingsAndReboot = false;
 void InfoNES_ReleaseRom() {
   ROM = nullptr;
   VROM = nullptr;
@@ -54,7 +33,7 @@ void InfoNES_SoundClose() {
 }
 
 int InfoNES_GetSoundBufferSize() {
-  return AUDIO_BUF_SIZE;
+  return buf_residue_size;
 }
 
 /*
@@ -128,29 +107,7 @@ int InfoNES_LoadFrame() {
   start_tick_us = time_us_64();
   return count;
 }
-uint32_t getCurrentNVRAMAddr() {
-  // Save Games are stored towards address stored roms.
-  // calculate address of save game slot
-  // slot 0 is reserved. (Some state variables are stored at this location)
-  uint32_t saveLocation = NES_BATTERY_SAVE_ADDR + SRAM_SIZE * (1 + 1);
-  if (saveLocation >= NES_FILE_ADDR) {
-    printf("No more save slots available, (Requested slot = 1)");
-    return {};
-  }
-  return saveLocation;
-}
-bool loadNVRAM() {
-  if (auto addr = getCurrentNVRAMAddr()) {
-    printf("load SRAM %x\n", addr);
-    memcpy(SRAM, reinterpret_cast<void*>(addr), SRAM_SIZE);
-  }
-  SRAMwritten = false;
-  return true;
-}
 
-void loadState() {
-  memcpy(SRAM, reinterpret_cast<void*>(NES_BATTERY_SAVE_ADDR), SRAM_SIZE);
-}
 void InfoNES_MessageBox(const char* pszMsg, ...) {
   Serial.printf("[MSG]");
   va_list args;
@@ -213,15 +170,8 @@ bool parseROM(const uint8_t* nesFile) {
 
   return true;
 }
-
-bool loadAndReset() {
-  return true;
-}
 int InfoNES_Menu() {
-
-  // InfoNES_Main() のループで最初に呼ばれる is called first in the loop of
-  return loadAndReset() ? 0 : -1;
-  // return 0;
+  return 0;
 }
 void __not_in_flash_func(InfoNES_PostDrawLine)(int line, bool frommenu) {
   lcd_draw_line(nullptr, pixels_buffer, line);
@@ -246,9 +196,9 @@ void NESInput::startEmulator() {
   max_lcd_width = NES_DISP_WIDTH;
   max_lcd_height = NES_DISP_HEIGHT;
   overclock252MHz();
-  
+  initJoypad();
+
   char errorMessage[30];
-  saveSettingsAndReboot = false;
   strcpy(errorMessage, "");
 
   scalingMode = ScalingMode::NORMAL;
@@ -283,15 +233,30 @@ void NESInput::mainLoop() {
 }
 
 void NESInput::saveRealtimeGameCallback() {
+  char filenameWithPath[MAX_PATH_LENGTH];
+  snprintf(filenameWithPath, sizeof(filenameWithPath), "rtsav/%s.sav", fileListMenu.getSelectedText());
+  if(srv.cardService.saveFile(filenameWithPath, RS_ram, sizeof(RS_ram)))
+  {
+    Serial.printf("I save nes success (%s)\r\n", filenameWithPath);
+  }
 }
 
 void NESInput::loadRealtimeGameCallback() {
+  char filenameWithPath[MAX_PATH_LENGTH];
+  snprintf(filenameWithPath, sizeof(filenameWithPath), "rtsav/%s.sav", fileListMenu.getSelectedText());
+
+  if(srv.cardService.readFile(filenameWithPath, RS_ram, sizeof(RS_ram)))
+  {
+    Serial.printf("I read nes success (%s)\r\n", filenameWithPath);
+  }
 }
 
 void NESInput::saveRamCallback() {
+  saveRealtimeGameCallback();
 }
 
 void NESInput::loadRamCallback() {
+  loadRealtimeGameCallback();
 }
 
 void NESInput::restartGameCallback() {
@@ -312,9 +277,6 @@ void NESInput::loadAndReset() {
     Serial.printf("NES file parse error.\n");
     Serial.flush();
   }
-  // if (loadNVRAM() == false) {
-  //   return false;
-  // }
 
   if (InfoNES_Reset() < 0) {
     Serial.printf("NES reset error.\n");
@@ -345,9 +307,10 @@ const WORD __not_in_flash_func(NesPalette)[64] = {
 
 int getbuttons() {
   srv.inputService.handleJoypad();
-  if ((PRESSED_KEY(ButtonID::BTN_SELECT) ? GPSELECT : 0)
-      && (PRESSED_KEY(ButtonID::BTN_START) ? GPSTART : 0)) {
-    reset();
+  if (PRESSED_KEY(ButtonID::BTN_SELECT)) {
+    if (srv.inputService.isButtonPressedFirstTime(ButtonID::BTN_START)) {
+      gameMenu.openMenu();
+    }
   }
   int key = (PRESSED_KEY(ButtonID::BTN_LEFT) ? GPLEFT : 0)
       | (PRESSED_KEY(ButtonID::BTN_RIGHT) ? GPRIGHT : 0)
@@ -430,7 +393,7 @@ void NESInput::nesAudioCallback(void* userdata, int16_t* stream, size_t len) {
 
 NESInput::NESInput() {
 }
-void NESInput::overclock252MHz(){
+void NESInput::overclock252MHz() {
   uint32_t CPUFreqKHz = 252000;
 
   vreg_set_voltage(VREG_VOLTAGE_1_20);

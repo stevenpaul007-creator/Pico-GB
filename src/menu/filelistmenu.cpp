@@ -43,7 +43,6 @@ void FileListMenu::onCloseMenu() {
   _afterFileSelectedCallback = nullptr;
   _onSelectKeyPressedCallback = nullptr;
   Menu::onCloseMenu();
-  delay(400);
 }
 
 void FileListMenu::makeTitle() {

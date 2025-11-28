@@ -217,7 +217,7 @@ extern WORD WorkFrameIdx;
 // FHextern WORD WorkFrame[NES_DISP_WIDTH * NES_DISP_HEIGHT];
 #endif
 
-extern BYTE ChrBuf[];
+extern BYTE* ChrBuf;
 
 
 extern BYTE ChrBufUpdate;

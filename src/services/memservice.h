@@ -6,7 +6,6 @@
 #include "InfoNES_pAPU.h"
 #include "baseservice.h"
 
-
 /*-------------------------------------------------------------------*/
 /*  NES resources                                                    */
 /*-------------------------------------------------------------------*/
@@ -17,7 +16,7 @@ extern BYTE* RAM;
 extern BYTE* SRAM;
 
 /* Character Buffer 32KB */
-extern BYTE ChrBuf[CHRBUF_SIZE];
+extern BYTE* ChrBuf;
 
 /* PPU RAM 16K */
 extern BYTE* PPURAM;

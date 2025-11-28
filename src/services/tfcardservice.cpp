@@ -27,7 +27,7 @@ void CardService::initSDCard() {
   }
 
   Serial.printf("SD-Card initialized: FAT-Type=%d\r\n", sd.vol()->fatType());
-  
+
   _gbConfig.type = GameType_GB;
   _gbConfig.dir = "/gb/";
   _gbConfig.fileExt[0] = ".gb";
@@ -144,6 +144,40 @@ void CardService::rom_file_selector() {
 
 GameType CardService::getSelectedFileType() {
   return _currentConfig.type;
+}
+
+bool CardService::readFile(const char* path, void* buf, size_t count) {
+  FsFile file;
+  if (!file.open(path, O_RDONLY)) {
+    Serial.printf("E f_open(%s) error\r\n", path);
+    return false;
+  } else {
+    file.read(buf, count);
+  }
+  return true;
+}
+
+bool CardService::saveFile(const char* path, void* buf, size_t count) {
+  if (count <= 0) {
+    Serial.printf("E saveFile count == 0\r\n");
+    return false;
+  }
+  FsFile file;
+  if (!file.open(path, O_WRONLY | O_CREAT)) {
+    Serial.printf("E saveFile(%s) error\r\n", path);
+    return false;
+  }
+
+  size_t writeSize = file.write(buf, count);
+  if (writeSize != count) {
+    Serial.printf("E saveFile(%s) count error\r\n", path);
+    return false;
+  }
+
+  if (!file.close()) {
+    Serial.printf("E saveFile f_close error\r\n");
+  }
+  return true;
 }
 
 void CardService::load_state(gb_s* gb) {
@@ -529,9 +563,9 @@ void CardService::afterFileSelectedCallback() {
 }
 
 void CardService::onSelectKeyPressedCallback() {
-  if(_currentConfig.type == GameType::GameType_GB){
+  if (_currentConfig.type == GameType::GameType_GB) {
     _currentConfig = _nesConfig;
-  }else{
+  } else {
     _currentConfig = _gbConfig;
   }
   fileListMenu.setGameType(_currentConfig.type);

@@ -167,7 +167,6 @@ void GameMenu::rebootSystem() {
 // 关闭菜单
 void GameMenu::onCloseMenu() {
   Menu::onCloseMenu();
-  delay(400);
 }
 
 void GameMenu::openMenu() {

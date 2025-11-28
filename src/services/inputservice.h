@@ -30,6 +30,7 @@ public:
   // 检查有按键按下
   bool hasButtonPressed();
   bool readJoypad(ButtonID button);
+  void clearButtons();
 
   void handleSerial();
   void handleJoypad();

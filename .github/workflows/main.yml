@@ -36,19 +36,19 @@ jobs:
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
-      - name: Build PlatformIO Project (ENABLE_EXT_PSRAM=1)
-        run: |
-          pio run --environment pico2-extpsram
-          UF2_FILE=$(find .pio/build/pico2-extpsram -name "*.uf2" | head -n 1)
-          echo "Found UF2 file: $UF2_FILE"
-          mv "$UF2_FILE" .pio/build/pico2-extpsram/pico2-gb-extpsram.uf2
+      # - name: Build PlatformIO Project (ENABLE_EXT_PSRAM=1)
+      #   run: |
+      #     pio run --environment pico2-extpsram
+      #     UF2_FILE=$(find .pio/build/pico2-extpsram -name "*.uf2" | head -n 1)
+      #     echo "Found UF2 file: $UF2_FILE"
+      #     mv "$UF2_FILE" .pio/build/pico2-extpsram/pico2-gb-extpsram.uf2
 
-      - name: Build PlatformIO Project (ENABLE_EXT_PSRAM=0)
-        run: |
-          pio run --environment pico2-nopsram
-          UF2_FILE=$(find .pio/build/pico2-nopsram -name "*.uf2" | head -n 1)
-          echo "Found UF2 file: $UF2_FILE"
-          mv "$UF2_FILE" .pio/build/pico2-nopsram/pico2-gb-nopsram.uf2
+      # - name: Build PlatformIO Project (ENABLE_EXT_PSRAM=0)
+      #   run: |
+      #     pio run --environment pico2-nopsram
+      #     UF2_FILE=$(find .pio/build/pico2-nopsram -name "*.uf2" | head -n 1)
+      #     echo "Found UF2 file: $UF2_FILE"
+      #     mv "$UF2_FILE" .pio/build/pico2-nopsram/pico2-gb-nopsram.uf2
 
       - name: Build PlatformIO Project (ENABLE_RP2040_PSRAM=1)
         run: |
@@ -69,27 +69,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload UF2 to Release (ENABLE_EXT_PSRAM=1)
-        if: steps.create_release.outputs.upload_url
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: .pio/build/pico2-extpsram/pico2-gb-extpsram.uf2
-          asset_name: pico2-gb-extpsram.uf2
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Upload UF2 to Release (ENABLE_EXT_PSRAM=1)
+      #   if: steps.create_release.outputs.upload_url
+      #   uses: actions/upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: .pio/build/pico2-extpsram/pico2-gb-extpsram.uf2
+      #     asset_name: pico2-gb-extpsram.uf2
+      #     asset_content_type: application/octet-stream
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload UF2 to Release (ENABLE_EXT_PSRAM=0)
-        if: steps.create_release.outputs.upload_url
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: .pio/build/pico2-nopsram/pico2-gb-nopsram.uf2
-          asset_name: pico2-gb-nopsram.uf2
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Upload UF2 to Release (ENABLE_EXT_PSRAM=0)
+      #   if: steps.create_release.outputs.upload_url
+      #   uses: actions/upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: .pio/build/pico2-nopsram/pico2-gb-nopsram.uf2
+      #     asset_name: pico2-gb-nopsram.uf2
+      #     asset_content_type: application/octet-stream
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload UF2 to Release (ENABLE_RP2040_PSRAM=1)
         if: steps.create_release.outputs.upload_url

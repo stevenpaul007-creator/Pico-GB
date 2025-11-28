@@ -107,6 +107,9 @@ public:
 
   void save_state(struct gb_s* gb);
   void load_state(struct gb_s* gb);
+
+  bool readFile(const char* path, void* buf, size_t count);
+  bool saveFile(const char* path, void* buf, size_t count);
 #if ENABLE_RP2040_PSRAM
   /**
    * load a rom into oboard psram
@@ -152,7 +155,7 @@ protected:
   bool is_real_time_savestate_loaded = false;
 
   FileListConfig _currentConfig;
-  
+
   FileListConfig _gbConfig;
   FileListConfig _nesConfig;
 };

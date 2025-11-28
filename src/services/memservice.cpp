@@ -14,7 +14,7 @@ void* InfoNes_GetRAM(size_t* size) {
 BYTE* SRAM = RS_ram + RAM_SIZE;
 
 /* Character Buffer 32KB */
-BYTE ChrBuf[CHRBUF_SIZE];
+BYTE* ChrBuf = gb.wram;
 
 // Share with romselect.cpp
 void* InfoNes_GetChrBuf(size_t* size) {

@@ -60,6 +60,11 @@ bool InputService::readJoypad(ButtonID button) {
   return gpio_get(button_pins[button]);
 }
 
+void InputService::clearButtons() {
+  g_button_state.current_state = 0;
+  g_button_state.last_state = 0;
+}
+
 void InputService::handleSerial() {
   static uint64_t start_time = time_us_64();
 

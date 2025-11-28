@@ -30,6 +30,8 @@ void Menu::openMenu() {
 // 关闭菜单
 void Menu::onCloseMenu() {
   srv.inputService.unsetAfterHandleJoypadCallback();
+  srv.inputService.clearButtons();
+  delay(200);
   menuActive = false;
 }
 void Menu::handleMenuSelection() {
