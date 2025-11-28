@@ -1,4 +1,7 @@
-# RP2040-GB for Pico-GB
+# RP2350-GB for Pico-GB
+
+* update 2025-11-28: Now NES is supported. Create a dir named NES in sd card and copy .nes files to it.
+
 
 This is a fork of [YouMakeTech's Pico-GB Game Boy emulator](https://github.com/YouMakeTech/Pico-GB) which again is a fork of the [Peanut-GB based RP2040-GB Game Boy (DMG) emulator from deltabeard](https://github.com/deltabeard/Peanut-GB).
 In addition to YouMakeTech and Deltabeards amazing work, this fork adds some improvements to the emulator like
