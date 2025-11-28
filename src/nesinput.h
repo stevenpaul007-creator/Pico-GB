@@ -3,8 +3,8 @@
 #include "InfoNES_Mapper.h"
 #include "InfoNES_System.h"
 #include "InfoNES_pAPU.h"
-#include "allservices.h"
-
+#include "emulator/emulator.h"
+#include "memservice.h"
 
 #define GPLEFT (1 << 6)
 #define GPRIGHT (1 << 7)
@@ -15,6 +15,21 @@
 #define GPA (1 << 0)
 #define GPB (1 << 1)
 
-void initJoypad();
-int nesMain();
-void nesAudioCallback(void *userdata, int16_t *stream, size_t len);
+class NESInput : public Emulator {
+public:
+  NESInput();
+  void initJoypad() override;
+  void shutdown() override;
+  void startEmulator() override;
+  void mainLoop() override;
+  void nesAudioCallback(void* userdata, int16_t* stream, size_t len);
+
+private:
+  void saveRealtimeGameCallback() override;
+  void loadRealtimeGameCallback() override;
+  void saveRamCallback() override;
+  void loadRamCallback() override;
+  void restartGameCallback() override;
+  void loadAndReset();
+  void overclock252MHz();
+};

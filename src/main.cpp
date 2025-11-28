@@ -36,8 +36,9 @@
 #include "allmenus.h"
 #include "allservices.h"
 #include "gbinput.h"
-
 GBInput gbInput;
+#include "nesinput.h"
+NESInput nesInput;
 
 #include "nesinput.h"
 
@@ -51,69 +52,6 @@ void overclock() {
   sleep_ms(2);
   set_sys_clock_pll(vco, div1, div2);
   sleep_ms(2);
-}
-
-void overclock252MHz(){
-  //*
-  uint32_t CPUFreqKHz = 252000;
-
-  vreg_set_voltage(VREG_VOLTAGE_1_20);
-  sleep_ms(100);
-  set_sys_clock_khz(CPUFreqKHz, true);
-  //*/
-}
-
-void startGBEmulator() {
-  gbInput.initJoypad();
-  scalingMode = ScalingMode::STRETCH;
-  Serial.println("Init GB context ...");  
-  initGbContext();
-
-  /* Automatically assign a colour palette to the game */
-  char rom_title[16];
-  auto_assign_palette(palette, gb_colour_hash(&gb), gb_get_rom_name(&gb, rom_title));
-
-#if ENABLE_LCD
-  gb_init_lcd(&gb, &lcd_draw_line_8bits);
-
-  /* Start Core1, which processes requests to the LCD. */
-  Serial.println("Starting Core1 ...");
-  multicore_launch_core1(core1_init);
-#endif
-
-#if ENABLE_SOUND
-  // Initialize audio emulation
-  Serial.println("Starting audio ...");
-  audio_init();
-  srv.soundService.setAudioCallback(audio_callback);
-#endif
-
-#if ENABLE_SDCARD
-  Serial.println("Load save file ...");
-  srv.cardService.read_cart_ram_file(&gb);
-#endif
-
-  Serial.print("\n> ");
-}
-
-void startNESEmulator() {
-  overclock252MHz();
-  scalingMode = ScalingMode::NORMAL;
-#if ENABLE_LCD
-  /* Start Core1, which processes requests to the LCD. */
-  Serial.println("Starting Core1 ...");
-  multicore_launch_core1(core1_init);
-#endif
-
-#if ENABLE_SOUND
-  // Initialize audio emulation
-  Serial.println("Starting audio ...");
-  srv.soundService.setAudioCallback(nesAudioCallback);
-#endif
-
-
-  Serial.print("\n> ");
-  nesMain();
 }
 
 void reset(uint32_t sleepMs) {
@@ -167,38 +105,15 @@ void setup() {
   gameType = srv.cardService.getSelectedFileType();
   switch(gameType){
     case GameType_GB:
-      startGBEmulator();
+      gbInput.startEmulator();
       break;
     case GameType_NES:
-      startNESEmulator();
+      nesInput.startEmulator();
       break;
   }
 }
 
 void loop() {
-  switch (srv.cardService.getSelectedFileType()) {
-  case GameType_GB:
-    gb.gb_frame = 0;
-
-    do {
-      //__gb_step_cpu(&gb);
-      gb_run_frame(&gb);
-      tight_loop_contents();
-    } while (HEDLEY_LIKELY(gb.gb_frame == 0));
-
-    frames++;
-    break;
-  case GameType_NES:
-    InfoNES_Main();
-    
-    break;
-  }
-  srv.inputService.handleJoypad();
-  srv.inputService.handleSerial();
-
-#if ENABLE_SOUND
-    srv.soundService.handleSoundLoop();
-#endif
 }
 
 void error(String message) {

@@ -1,26 +1,26 @@
 #pragma once
 #include <stdint.h>
+#include "emulator/emulator.h"
 
-class GBInput {
+class GBInput : public Emulator{
 public:
   GBInput();
-  void initJoypad();
-  void handleJoypad();
-  void handleSerial();
-  void nextPalette();
-  void shutdown();
+  void initJoypad() override;
+  void nextPalette() override;
+  void startEmulator() override;
+  void mainLoop() override;
 
 private:
-  void afterHandleJoypadCallback();
-  void updatePalette();
-  void prevPalette();
+  void afterHandleJoypadCallback() override;
+  void updatePalette() override;
+  void prevPalette() override;
   
-  void applyColorSchemeCallback();
-  void saveRealtimeGameCallback();
-  void loadRealtimeGameCallback();
-  void saveRamCallback();
-  void loadRamCallback();
-  void restartGameCallback();
+  void applyColorSchemeCallback() override;
+  void saveRealtimeGameCallback() override;
+  void loadRealtimeGameCallback() override;
+  void saveRamCallback() override;
+  void loadRamCallback() override;
+  void restartGameCallback() override;
 
 
 protected:

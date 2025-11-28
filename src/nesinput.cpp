@@ -1,58 +1,9 @@
 #include "nesinput.h"
+#include <hardware/vreg.h>
 
 #include "allservices.h"
 #include "hardware/divider.h"
 #include "lcd_core.h"
-/*-------------------------------------------------------------------*/
-/*  NES resources                                                    */
-/*-------------------------------------------------------------------*/
-
-#pragma region buffers
-/* RAM 8K */
-BYTE* RAM = RS_ram;
-// BYTE RAM[RAM_SIZE] ;
-// Share with romselect.cpp
-void* InfoNes_GetRAM(size_t* size) {
-  printf("Acquired RAM Buffer from emulator: %d bytes\n", RAM_SIZE);
-  *size = RAM_SIZE;
-  return SRAM;
-}
-/* SRAM 8K */
-// BYTE SRAM[SRAM_SIZE] ;
-BYTE* SRAM = RS_ram + RAM_SIZE;
-
-/* Character Buffer 512B */
-BYTE ChrBuf[CHRBUF_SIZE];
-
-// Share with romselect.cpp
-void* InfoNes_GetChrBuf(size_t* size) {
-  printf("Acquired ChrBuf Buffer from emulator: %d bytes\n", CHRBUF_SIZE);
-  *size = CHRBUF_SIZE;
-  return ChrBuf;
-}
-/* PPU RAM 16K */
-// BYTE PPURAM[PPURAM_SIZE];
-BYTE* PPURAM = RS_ram + (RAM_SIZE + SRAM_SIZE);
-// Share with romselect.cpp
-void* InfoNes_GetPPURAM(size_t* size) {
-  printf("Acquired PPURAM Buffer from emulator: %d bytes\n", PPURAM_SIZE);
-  *size = PPURAM_SIZE;
-  return PPURAM;
-}
-/* PPU BANK ( 1Kb * 16 ) */
-BYTE* PPUBANK[16];
-/* Sprite RAM 256B */
-BYTE SPRRAM[SPRRAM_SIZE];
-// Share with romselect.cpp
-void* InfoNes_GetSPRRAM(size_t* size) {
-  printf("Acquired SPRRAM Buffer from emulator: %d bytes\n", SPRRAM_SIZE);
-  *size = SPRRAM_SIZE;
-  return SPRRAM;
-}
-/* Scanline Table */
-BYTE PPU_ScanTable[263];
-#pragma endregion
-
 static constexpr uintptr_t NES_FILE_ADDR = 0x10110000; // Location of .nes rom or tar archive with .nes roms
 static constexpr uintptr_t NES_BATTERY_SAVE_ADDR = 0x100D0000; // 256K
                                                                //  = 8K   D0000 - 0D1FFF for persisting some variables after reboot
@@ -80,12 +31,8 @@ static uint32_t fps = 0;
 
 #define AUDIO_BUF_SIZE AUDIO_BUFFER_SIZE_BYTES
 static int16_t snd_buf[AUDIO_BUF_SIZE] = {0};
-int buf_residue_size=AUDIO_BUF_SIZE;
+int buf_residue_size = AUDIO_BUF_SIZE;
 volatile bool SoundOutputBuilding = true;
-
-// final wave buffer
-int fw_wr, fw_rd;
-int final_wave[2][735 + 1]; /* 44100 (just in case)/ 60 = 735 samples per sync */
 
 // micomenu
 bool micromenu;
@@ -113,51 +60,40 @@ int InfoNES_GetSoundBufferSize() {
 /*
  *  call from InfoNES_pAPUHsync
  */
-void __not_in_flash_func(InfoNES_SoundOutput)(int samples, BYTE *wave1, BYTE *wave2, BYTE *wave3, BYTE *wave4, BYTE *wave5){
+void __not_in_flash_func(InfoNES_SoundOutput)(int samples, BYTE* wave1, BYTE* wave2, BYTE* wave3, BYTE* wave4, BYTE* wave5) {
   // Producer: write 8-bit mixed samples into circular buffer
-  /*
-  int i;
-
-  for (i = 0; i < samples; i++) {
-    final_wave[fw_wr][i] = (unsigned char)wave1[i] + (unsigned char)wave2[i] + (unsigned char)wave3[i] + (unsigned char)wave4[i] + (unsigned char)wave5[i];
-  }
-  final_wave[fw_wr][i] = -1;
-  fw_wr = 1 - fw_wr;
-  */
-
   static int test_i = 0;
 
   SoundOutputBuilding = true;
 
   while (samples) {
-        // auto &ring = dvi_->getAudioRingBuffer();
-        // auto n = std::min<int>(samples, ring.getWritableSize());
-        auto n = std::min<int>(samples, buf_residue_size);
-        // auto n = samples;
-        if (!n)
-        {
-            return;
-        }
-        // auto p = ring.getWritePointer();
-        auto p = &snd_buf[AUDIO_BUF_SIZE-buf_residue_size];
-        // auto p = snd_buf;
+    // auto &ring = dvi_->getAudioRingBuffer();
+    // auto n = std::min<int>(samples, ring.getWritableSize());
+    auto n = std::min<int>(samples, buf_residue_size);
+    // auto n = samples;
+    if (!n) {
+      return;
+    }
+    // auto p = ring.getWritePointer();
+    auto p = &snd_buf[AUDIO_BUF_SIZE - buf_residue_size];
+    // auto p = snd_buf;
 
-        int ct = n;
-        while (ct--)
-        {
-            uint8_t w1 = *wave1++;
-            uint8_t w2 = *wave2++;
-            uint8_t w3 = *wave3++; // triangle
-            uint8_t w4 = *wave4++; // noise
-            uint8_t w5 = *wave5++; // DPCM
-             *p++ =  (((w1 * 2 + w2 * 2)/2)  + w3 * 1  + w4 * 1 * 4 + w5 * 2 * 1) / 4;
-        }
+    int ct = n;
+    while (ct--) {
+      uint8_t w1 = *wave1++;
+      uint8_t w2 = *wave2++;
+      uint8_t w3 = *wave3++; // triangle
+      uint8_t w4 = *wave4++; // noise
+      uint8_t w5 = *wave5++; // DPCM
+      *p++ = (((w1 * 2 + w2 * 2) / 2) + w3 * 1 + w4 * 1 * 4 + w5 * 2 * 1) / 4;
+    }
 
-        // ring.advanceWritePointer(n);
-        samples -= n;
-        buf_residue_size -= n;
-        // snd_buf should not be full, just for case
-        if(buf_residue_size <= 0) buf_residue_size = AUDIO_BUF_SIZE;
+    // ring.advanceWritePointer(n);
+    samples -= n;
+    buf_residue_size -= n;
+    // snd_buf should not be full, just for case
+    if (buf_residue_size <= 0)
+      buf_residue_size = AUDIO_BUF_SIZE;
   }
   SoundOutputBuilding = false;
   // if(samples)
@@ -177,8 +113,8 @@ static void __not_in_flash_func(speed_control)(void) {
 }
 
 int InfoNES_LoadFrame() {
-  //speed_control();
-  if(!SoundOutputBuilding){
+  // speed_control();
+  if (!SoundOutputBuilding) {
     srv.soundService.handleSoundLoop();
   }
   auto count = frame++;
@@ -279,32 +215,6 @@ bool parseROM(const uint8_t* nesFile) {
 }
 
 bool loadAndReset() {
-  Serial.printf("loadAndReset\n");
-  uint8_t* romPtr;
-
-#if ENABLE_RP2040_PSRAM
-  romPtr = psram_rom;
-#else
-  romPtr = RS_rom;
-#endif
-
-  if (!parseROM(romPtr)) {
-    Serial.printf("NES file parse error.\n");
-    Serial.flush();
-    return false;
-  }
-  // if (loadNVRAM() == false) {
-  //   return false;
-  // }
-
-  if (InfoNES_Reset() < 0) {
-    Serial.printf("NES reset error.\n");
-    Serial.flush();
-    return false;
-  }
-
-  Serial.printf("NES file parse OK\n");
-  Serial.flush();
   return true;
 }
 int InfoNES_Menu() {
@@ -321,20 +231,41 @@ void __not_in_flash_func(InfoNES_PreDrawLine)(int line) {
   InfoNES_SetLineBuffer(pixels_buffer, NES_DISP_WIDTH);
 }
 
-void initJoypad() {
+void NESInput::initJoypad() {
+  gameMenu.setSaveRealtimeGameCallback(std::bind(&NESInput::saveRealtimeGameCallback, this));
+  gameMenu.setLoadRealtimeGameCallback(std::bind(&NESInput::loadRealtimeGameCallback, this));
+  gameMenu.setSaveRamCallback(std::bind(&NESInput::saveRamCallback, this));
+  gameMenu.setLoadRamCallback(std::bind(&NESInput::loadRamCallback, this));
+  gameMenu.setRestartGameCallback(std::bind(&NESInput::restartGameCallback, this));
 }
 
-int nesMain() {
+void NESInput::shutdown() {
+}
+
+void NESInput::startEmulator() {
   max_lcd_width = NES_DISP_WIDTH;
   max_lcd_height = NES_DISP_HEIGHT;
-
-  micromenu = false;
+  overclock252MHz();
+  
   char errorMessage[30];
   saveSettingsAndReboot = false;
   strcpy(errorMessage, "");
 
-  final_wave[0][0] = final_wave[1][0] = -1; // click fix
-  fw_wr = fw_rd = 0;
+  scalingMode = ScalingMode::NORMAL;
+#if ENABLE_LCD
+  /* Start Core1, which processes requests to the LCD. */
+  Serial.println("Starting Core1 ...");
+  multicore_launch_core1(core1_init);
+#endif
+
+#if ENABLE_SOUND
+  // Initialize audio emulation
+  Serial.println("Starting audio ...");
+  srv.soundService.setAudioCallback(std::bind(
+      &NESInput::nesAudioCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+#endif
+
   Serial.printf("Start program\n");
   Serial.flush();
 
@@ -342,7 +273,56 @@ int nesMain() {
 
   // When system is rebooted after flashing SRAM, load the saved state and volume from flash and proceed.
   // loadState();
-  return 0;
+  mainLoop();
+}
+
+void NESInput::mainLoop() {
+  while (true) {
+    InfoNES_Main();
+  }
+}
+
+void NESInput::saveRealtimeGameCallback() {
+}
+
+void NESInput::loadRealtimeGameCallback() {
+}
+
+void NESInput::saveRamCallback() {
+}
+
+void NESInput::loadRamCallback() {
+}
+
+void NESInput::restartGameCallback() {
+  InfoNES_Reset();
+}
+
+void NESInput::loadAndReset() {
+  Serial.printf("loadAndReset\n");
+  uint8_t* romPtr;
+
+#if ENABLE_RP2040_PSRAM
+  romPtr = psram_rom;
+#else
+  romPtr = RS_rom;
+#endif
+
+  if (!parseROM(romPtr)) {
+    Serial.printf("NES file parse error.\n");
+    Serial.flush();
+  }
+  // if (loadNVRAM() == false) {
+  //   return false;
+  // }
+
+  if (InfoNES_Reset() < 0) {
+    Serial.printf("NES reset error.\n");
+    Serial.flush();
+  }
+
+  Serial.printf("NES file parse OK\n");
+  Serial.flush();
 }
 // color table in aaaarrrrggggbbbb format
 //  a = alpha - 4 bit
@@ -414,8 +394,7 @@ void InfoNES_PadState(DWORD* pdwPad1, DWORD* pdwPad2, DWORD* pdwSystem) {
   *pdwSystem = reset ? PAD_SYS_QUIT : 0;
 }
 
-
-void nesAudioCallback(void* userdata, int16_t* stream, size_t len) {
+void NESInput::nesAudioCallback(void* userdata, int16_t* stream, size_t len) {
   // Zero output buffer first
   memset(stream, 0, len);
 
@@ -447,4 +426,14 @@ void nesAudioCallback(void* userdata, int16_t* stream, size_t len) {
 
   // update buffer residue: we've freed samples_to_copy bytes
   buf_residue_size += samples_to_copy;
+}
+
+NESInput::NESInput() {
+}
+void NESInput::overclock252MHz(){
+  uint32_t CPUFreqKHz = 252000;
+
+  vreg_set_voltage(VREG_VOLTAGE_1_20);
+  sleep_ms(100);
+  set_sys_clock_khz(CPUFreqKHz, true);
 }

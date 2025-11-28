@@ -61,7 +61,7 @@ void SoundService::decreaseVolume() {
   }
 }
 
-void SoundService::setAudioCallback(std::function<void((void *userdata, int16_t *stream, size_t len))> audioCallback) {
+void SoundService::setAudioCallback(std::function<void(void *userdata, int16_t *stream, size_t len)> audioCallback) {
   _audioCallback = audioCallback;
   Serial.println("I Sound callback set.");
 }

@@ -1,7 +1,6 @@
 #include "gbinput.h"
 
-#include "allmenus.h"
-#include "allservices.h"
+#include "lcd_core.h"
 
 #define PALETTE_COUNT 15
 
@@ -58,27 +57,61 @@ void GBInput::nextPalette() {
   updatePalette();
 }
 
-void GBInput::shutdown() {
-  srv.inputService.unsetAfterHandleJoypadCallback();
-  gameMenu.setApplyColorSchemeCallback(nullptr);
-  gameMenu.setSaveRealtimeGameCallback(nullptr);
-  gameMenu.setLoadRealtimeGameCallback(nullptr);
-  gameMenu.setSaveRamCallback(nullptr);
-  gameMenu.setLoadRamCallback(nullptr);
-  gameMenu.setRestartGameCallback(nullptr);
+void GBInput::startEmulator() {
+  initJoypad();
+  scalingMode = ScalingMode::STRETCH_KEEP_ASPECT;
+  Serial.println("Init GB context ...");
+  initGbContext();
+
+  /* Automatically assign a colour palette to the game */
+  char rom_title[16];
+  auto_assign_palette(palette, gb_colour_hash(&gb), gb_get_rom_name(&gb, rom_title));
+
+#if ENABLE_LCD
+  gb_init_lcd(&gb, &lcd_draw_line_8bits);
+
+  /* Start Core1, which processes requests to the LCD. */
+  Serial.println("Starting Core1 ...");
+  multicore_launch_core1(core1_init);
+#endif
+
+#if ENABLE_SOUND
+  // Initialize audio emulation
+  Serial.println("Starting audio ...");
+  audio_init();
+  srv.soundService.setAudioCallback(audio_callback);
+#endif
+
+#if ENABLE_SDCARD
+  Serial.println("Load save file ...");
+  srv.cardService.read_cart_ram_file(&gb);
+#endif
+  mainLoop();
+}
+
+void GBInput::mainLoop() {
+  while (true) {
+    gb.gb_frame = 0;
+
+    do {
+      //__gb_step_cpu(&gb);
+      gb_run_frame(&gb);
+      tight_loop_contents();
+    } while (HEDLEY_LIKELY(gb.gb_frame == 0));
+    frames++;
+
+    handleJoypad();
+    handleSerial();
+
+#if ENABLE_SOUND
+    srv.soundService.handleSoundLoop();
+#endif
+  }
 }
 
 void GBInput::prevPalette() {
   palette_selected = (palette_selected + PALETTE_COUNT - 1) % PALETTE_COUNT;
   updatePalette();
-}
-
-void GBInput::handleSerial() {
-  srv.inputService.handleSerial();
-}
-
-void GBInput::handleJoypad() {
-  srv.inputService.handleJoypad();
 }
 
 void GBInput::applyColorSchemeCallback() {
