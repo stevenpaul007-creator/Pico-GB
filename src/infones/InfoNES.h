@@ -228,6 +228,7 @@ extern WORD PalTable[];
 /*  APU and Pad resources                                            */
 /*-------------------------------------------------------------------*/
 
+#define APU_REG_SIZE 0x18
 extern BYTE APU_Reg[];
 extern int APU_Mute;
 

@@ -146,32 +146,30 @@ GameType CardService::getSelectedFileType() {
   return _currentConfig.type;
 }
 
-bool CardService::readFile(const char* path, void* buf, size_t count) {
+bool CardService::readFile(const char* path, const MemoryRegion* regions, size_t region_count) {
   FsFile file;
   if (!file.open(path, O_RDONLY)) {
     Serial.printf("E f_open(%s) error\r\n", path);
     return false;
   } else {
-    file.read(buf, count);
+    // 迭代 MemoryRegion 数组，逐个写入每个区域
+    for (size_t i = 0; i < region_count; i++) {
+      file.read(regions[i].address, regions[i].size);
+    }
   }
   return true;
 }
 
-bool CardService::saveFile(const char* path, void* buf, size_t count) {
-  if (count <= 0) {
-    Serial.printf("E saveFile count == 0\r\n");
-    return false;
-  }
+bool CardService::saveFile(const char* path, const MemoryRegion* regions, size_t region_count) {
   FsFile file;
   if (!file.open(path, O_WRONLY | O_CREAT)) {
     Serial.printf("E saveFile(%s) error\r\n", path);
     return false;
   }
 
-  size_t writeSize = file.write(buf, count);
-  if (writeSize != count) {
-    Serial.printf("E saveFile(%s) count error\r\n", path);
-    return false;
+  // 迭代 MemoryRegion 数组，逐个写入每个区域
+  for (size_t i = 0; i < region_count; i++) {
+    file.write(regions[i].address, regions[i].size);
   }
 
   if (!file.close()) {

@@ -108,8 +108,8 @@ public:
   void save_state(struct gb_s* gb);
   void load_state(struct gb_s* gb);
 
-  bool readFile(const char* path, void* buf, size_t count);
-  bool saveFile(const char* path, void* buf, size_t count);
+  bool readFile(const char* path, const MemoryRegion* regions, size_t region_count);
+  bool saveFile(const char* path, const MemoryRegion* regions, size_t region_count);
 #if ENABLE_RP2040_PSRAM
   /**
    * load a rom into oboard psram

@@ -192,7 +192,7 @@ BYTE PPU_MirrorTable[][4] =
 /*-------------------------------------------------------------------*/
 
 /* APU Register */
-BYTE APU_Reg[0x18];
+BYTE APU_Reg[APU_REG_SIZE];
 
 /* APU Mute ( 0:OFF, 1:ON ) */
 int APU_Mute = 0;

@@ -17,6 +17,35 @@ volatile bool SoundOutputBuilding = true;
 // micomenu
 bool micromenu;
 
+MemoryRegion nes_save_regions[] = {
+    {RS_ram, sizeof(RS_ram)},
+    // {PPUBANK, sizeof(PPUBANK)},
+    {SPRRAM, sizeof(SPRRAM)},
+    {&PalTable, sizeof(WORD) * 32},   /*this is very important for bg color*/
+    {&PPU_R0, sizeof(PPU_R0)},
+    {&PPU_R1, sizeof(PPU_R1)},
+    {&PPU_R2, sizeof(PPU_R2)},
+    {&PPU_R3, sizeof(PPU_R3)},
+    {&PPU_R7, sizeof(PPU_R7)},
+    {&PPU_Scr_H_Byte, sizeof(PPU_Scr_H_Byte)},
+    {&PPU_Scr_H_Bit, sizeof(PPU_Scr_H_Bit)},
+    {&PPU_Latch_Flag, sizeof(PPU_Latch_Flag)},
+    {&PPU_Addr, sizeof(PPU_Addr)},
+    {&PPU_Temp, sizeof(PPU_Temp)},
+    {&PPU_Increment, sizeof(PPU_Increment)},
+    {&PPU_Latch_Flag, sizeof(PPU_Latch_Flag)},
+    {&MapperNo, sizeof(MapperNo)},
+    {&ROM_Mirroring, sizeof(ROM_Mirroring)},
+    {&ROM_SRAM, sizeof(ROM_SRAM)},
+    {&ROM_Trainer, sizeof(ROM_Trainer)},
+    {&ROM_FourScr, sizeof(ROM_FourScr)},
+    {APU_Reg, APU_REG_SIZE},
+    {&PPU_NameTableBank, sizeof(PPU_NameTableBank)},
+    {&PPU_BG_Base, sizeof(PPU_BG_Base)},         // 保存 PPU_BG_Base 指针变量本身的值
+    {&PPU_SP_Base, sizeof(PPU_SP_Base)},         // 保存 PPU_SP_Base 指针变量本身的值
+    {&PPU_SP_Height, sizeof(PPU_SP_Height)}      // 保存精灵高度值
+  };
+
 void InfoNES_ReleaseRom() {
   ROM = nullptr;
   VROM = nullptr;
@@ -235,8 +264,7 @@ void NESInput::mainLoop() {
 void NESInput::saveRealtimeGameCallback() {
   char filenameWithPath[MAX_PATH_LENGTH];
   snprintf(filenameWithPath, sizeof(filenameWithPath), "rtsav/%s.sav", fileListMenu.getSelectedText());
-  if(srv.cardService.saveFile(filenameWithPath, RS_ram, sizeof(RS_ram)))
-  {
+  if (srv.cardService.saveFile(filenameWithPath, nes_save_regions, sizeof(nes_save_regions) / sizeof(MemoryRegion))) {
     Serial.printf("I save nes success (%s)\r\n", filenameWithPath);
   }
 }
@@ -245,8 +273,7 @@ void NESInput::loadRealtimeGameCallback() {
   char filenameWithPath[MAX_PATH_LENGTH];
   snprintf(filenameWithPath, sizeof(filenameWithPath), "rtsav/%s.sav", fileListMenu.getSelectedText());
 
-  if(srv.cardService.readFile(filenameWithPath, RS_ram, sizeof(RS_ram)))
-  {
+  if (srv.cardService.readFile(filenameWithPath, nes_save_regions, sizeof(nes_save_regions) / sizeof(MemoryRegion))) {
     Serial.printf("I read nes success (%s)\r\n", filenameWithPath);
   }
 }
